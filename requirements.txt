@@ -1,0 +1,16 @@
+# MATLAB file reading
+scipy
+h5py
+
+# Arrays, data frames, and Parquet
+numpy
+pandas
+pyarrow
+
+# Image processing and classical feature extraction
+Pillow
+scikit-image
+scikit-learn
+
+# Testing
+pytest

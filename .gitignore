@@ -1,0 +1,43 @@
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated datasets and feature artifacts
+data/processed/samples/*
+data/processed/images/*
+data/processed/masks/*
+data/processed/overlays/*
+data/splits/*
+data/features/*
+!data/processed/samples/.gitkeep
+!data/processed/images/.gitkeep
+!data/processed/masks/.gitkeep
+!data/processed/overlays/.gitkeep
+!data/splits/.gitkeep
+!data/features/.gitkeep
+
+# Generated reports
+reports/sample_overlays/*
+reports/figures/*
+!reports/sample_overlays/.gitkeep
+!reports/figures/.gitkeep
+
+# Model weights
+*.ckpt
+*.h5
+*.joblib
+*.onnx
+*.pth
+*.pt
+*.pkl
+*.weights
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Raw dataset (immutable local source data)
+1512427/

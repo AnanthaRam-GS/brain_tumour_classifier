@@ -1,0 +1,25 @@
+project_root: .
+raw_data: 1512427
+raw_cases:
+  - 1512427/brainTumorDataPublic_1-766
+  - 1512427/brainTumorDataPublic_767-1532
+  - 1512427/brainTumorDataPublic_1533-2298
+  - 1512427/brainTumorDataPublic_2299-3064
+cv_indices: 1512427/cvind.mat
+
+processed:
+  root: data/processed
+  samples: data/processed/samples
+  images: data/processed/images
+  masks: data/processed/masks
+  overlays: data/processed/overlays
+
+splits: data/splits
+features: data/features
+reports:
+  root: reports
+  sample_overlays: reports/sample_overlays
+  figures: reports/figures
+notebooks: notebooks
+source: src
+tests: tests
