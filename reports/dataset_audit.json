@@ -1,0 +1,1935 @@
+{
+  "dataset_root": "1512427",
+  "random_seed": 2024,
+  "total_mat_sample_files": 3064,
+  "valid_files": 3064,
+  "invalid_files": 0,
+  "unique_patients": 233,
+  "samples_per_patient": {
+    "100360": 18,
+    "100416": 4,
+    "100572": 8,
+    "100639": 2,
+    "100820": 17,
+    "100920": 3,
+    "101016": 17,
+    "101017": 15,
+    "101020": 18,
+    "101029": 19,
+    "101082": 2,
+    "101127": 12,
+    "101145": 12,
+    "101305": 16,
+    "101384": 3,
+    "101724": 11,
+    "101797": 15,
+    "101801": 3,
+    "102075": 9,
+    "102420": 7,
+    "102446": 4,
+    "102648": 17,
+    "102669": 3,
+    "102675": 5,
+    "102714": 13,
+    "102818": 4,
+    "102929": 8,
+    "102935": 3,
+    "102960": 5,
+    "102985": 3,
+    "103046": 11,
+    "103148": 12,
+    "103257": 18,
+    "103478": 23,
+    "103582": 19,
+    "103670": 11,
+    "103671": 15,
+    "103673": 18,
+    "103731": 22,
+    "103837": 20,
+    "103925": 15,
+    "104019": 13,
+    "104167": 15,
+    "104281": 17,
+    "104558": 24,
+    "104684": 23,
+    "104695": 3,
+    "104912": 17,
+    "105187": 16,
+    "105374": 5,
+    "105475": 10,
+    "105538": 7,
+    "105555": 6,
+    "105638": 13,
+    "105653": 2,
+    "105936": 11,
+    "105937": 9,
+    "106062": 21,
+    "106284": 13,
+    "106442": 10,
+    "106494": 18,
+    "106534": 6,
+    "106592": 1,
+    "106665": 19,
+    "106720": 17,
+    "106914": 15,
+    "107190": 4,
+    "107248": 15,
+    "107429": 20,
+    "107494": 15,
+    "107495": 18,
+    "107505": 17,
+    "107743": 14,
+    "107747": 15,
+    "107946": 4,
+    "108479": 2,
+    "108514": 18,
+    "108550": 6,
+    "108590": 6,
+    "108858": 15,
+    "108931": 15,
+    "108945": 12,
+    "109350": 2,
+    "109411": 3,
+    "109471": 16,
+    "109769": 14,
+    "109898": 15,
+    "109968": 12,
+    "110116": 5,
+    "110518": 12,
+    "110537": 13,
+    "110808": 2,
+    "110993": 12,
+    "111075": 17,
+    "111077": 10,
+    "111125": 14,
+    "111366": 12,
+    "111532": 11,
+    "111696": 1,
+    "111710": 2,
+    "111785": 13,
+    "112002": 12,
+    "112027": 2,
+    "112062": 10,
+    "112074": 14,
+    "112105": 24,
+    "112252": 6,
+    "112552": 21,
+    "112648": 10,
+    "112649": 16,
+    "112650": 2,
+    "112746": 12,
+    "112847": 13,
+    "113098": 4,
+    "113274": 10,
+    "113435": 20,
+    "113554": 10,
+    "113614": 4,
+    "113741": 8,
+    "113805": 4,
+    "113971": 2,
+    "114018": 15,
+    "114040": 9,
+    "114094": 13,
+    "114359": 19,
+    "114361": 10,
+    "114417": 4,
+    "53669": 1,
+    "58392": 1,
+    "88510": 1,
+    "88670": 12,
+    "90284": 19,
+    "92897": 4,
+    "93329": 5,
+    "93825": 7,
+    "94731": 3,
+    "95142": 9,
+    "95969": 1,
+    "96587": 4,
+    "97374": 5,
+    "97416": 24,
+    "97461": 25,
+    "97481": 14,
+    "97599": 7,
+    "97607": 12,
+    "97609": 10,
+    "97737": 15,
+    "97793": 1,
+    "97875": 8,
+    "97890": 14,
+    "97943": 15,
+    "98241": 19,
+    "98472": 18,
+    "98652": 12,
+    "98871": 20,
+    "98874": 16,
+    "98889": 6,
+    "98992": 25,
+    "98995": 16,
+    "99017": 6,
+    "99089": 13,
+    "99162": 3,
+    "99223": 21,
+    "99288": 3,
+    "99308": 15,
+    "99815": 6,
+    "MR017260F": 23,
+    "MR024780B": 8,
+    "MR024780D": 7,
+    "MR024780E": 7,
+    "MR024780G": 29,
+    "MR026175C": 18,
+    "MR026175E": 22,
+    "MR029209E": 24,
+    "MR029209G": 20,
+    "MR029209I": 26,
+    "MR031409B": 7,
+    "MR032322C": 38,
+    "MR033389B": 24,
+    "MR033420": 26,
+    "MR034694": 15,
+    "MR034997": 21,
+    "MR036496B": 16,
+    "MR037458B": 21,
+    "MR037458C": 19,
+    "MR038469": 18,
+    "MR039473": 15,
+    "MR039473B": 23,
+    "MR040240": 28,
+    "MR040240B": 25,
+    "MR040240C": 31,
+    "MR040240D": 13,
+    "MR047953C": 9,
+    "MR048294": 22,
+    "MR048294B": 15,
+    "MR048297": 17,
+    "MR048621B": 19,
+    "MR048944": 23,
+    "MR048944B": 13,
+    "MR048994": 26,
+    "MR048994B": 17,
+    "MR049019C": 12,
+    "MR049019G": 15,
+    "MR049104": 9,
+    "MR049104B": 8,
+    "MR049142": 10,
+    "MR049242C": 5,
+    "MR049358": 26,
+    "MR049453": 25,
+    "MR049453B": 22,
+    "MR049942B": 10,
+    "MR050135B": 34,
+    "MR050687": 22,
+    "MR050687C": 18,
+    "MR050791B": 22,
+    "MR051461": 23,
+    "MR051461B": 9,
+    "MR051586": 22,
+    "MR051644": 37,
+    "MR051644B": 16,
+    "MR051644C": 35,
+    "MR051651": 17,
+    "MR051651B": 19,
+    "MR051796": 20,
+    "MR051796B": 11,
+    "MR052550": 18,
+    "MR052585B": 6,
+    "MR053110B": 19,
+    "MR053110E": 22,
+    "MR053241C": 4,
+    "MR054683": 6,
+    "MR054875": 9,
+    "MR056144": 5
+  },
+  "class_distribution": [
+    {
+      "label": 1,
+      "class_name": "meningioma",
+      "sample_count": 708,
+      "unique_patients": 82
+    },
+    {
+      "label": 2,
+      "class_name": "glioma",
+      "sample_count": 1426,
+      "unique_patients": 89
+    },
+    {
+      "label": 3,
+      "class_name": "pituitary",
+      "sample_count": 930,
+      "unique_patients": 62
+    }
+  ],
+  "class_distribution_by_patient": [
+    {
+      "patient_id": "100360",
+      "meningioma_samples": 18,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "100416",
+      "meningioma_samples": 0,
+      "glioma_samples": 4,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "100572",
+      "meningioma_samples": 8,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "100639",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "100820",
+      "meningioma_samples": 0,
+      "glioma_samples": 17,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "100920",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "101016",
+      "meningioma_samples": 17,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "101017",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 15,
+      "labels": "3"
+    },
+    {
+      "patient_id": "101020",
+      "meningioma_samples": 0,
+      "glioma_samples": 18,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "101029",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 19,
+      "labels": "3"
+    },
+    {
+      "patient_id": "101082",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "101127",
+      "meningioma_samples": 12,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "101145",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 12,
+      "labels": "3"
+    },
+    {
+      "patient_id": "101305",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 16,
+      "labels": "3"
+    },
+    {
+      "patient_id": "101384",
+      "meningioma_samples": 0,
+      "glioma_samples": 3,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "101724",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 11,
+      "labels": "3"
+    },
+    {
+      "patient_id": "101797",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "101801",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102075",
+      "meningioma_samples": 0,
+      "glioma_samples": 9,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "102420",
+      "meningioma_samples": 7,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102446",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102648",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 17,
+      "labels": "3"
+    },
+    {
+      "patient_id": "102669",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 3,
+      "labels": "3"
+    },
+    {
+      "patient_id": "102675",
+      "meningioma_samples": 5,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102714",
+      "meningioma_samples": 13,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102818",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102929",
+      "meningioma_samples": 8,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102935",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102960",
+      "meningioma_samples": 5,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "102985",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "103046",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 11,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103148",
+      "meningioma_samples": 0,
+      "glioma_samples": 12,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "103257",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 18,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103478",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 23,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103582",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 19,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103670",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 11,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103671",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 15,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103673",
+      "meningioma_samples": 18,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "103731",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 22,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103837",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 20,
+      "labels": "3"
+    },
+    {
+      "patient_id": "103925",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "104019",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 13,
+      "labels": "3"
+    },
+    {
+      "patient_id": "104167",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "104281",
+      "meningioma_samples": 17,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "104558",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 24,
+      "labels": "3"
+    },
+    {
+      "patient_id": "104684",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 23,
+      "labels": "3"
+    },
+    {
+      "patient_id": "104695",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "104912",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 17,
+      "labels": "3"
+    },
+    {
+      "patient_id": "105187",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 16,
+      "labels": "3"
+    },
+    {
+      "patient_id": "105374",
+      "meningioma_samples": 5,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "105475",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 10,
+      "labels": "3"
+    },
+    {
+      "patient_id": "105538",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 7,
+      "labels": "3"
+    },
+    {
+      "patient_id": "105555",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "105638",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 13,
+      "labels": "3"
+    },
+    {
+      "patient_id": "105653",
+      "meningioma_samples": 0,
+      "glioma_samples": 2,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "105936",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 11,
+      "labels": "3"
+    },
+    {
+      "patient_id": "105937",
+      "meningioma_samples": 9,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106062",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 21,
+      "labels": "3"
+    },
+    {
+      "patient_id": "106284",
+      "meningioma_samples": 13,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106442",
+      "meningioma_samples": 10,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106494",
+      "meningioma_samples": 0,
+      "glioma_samples": 18,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "106534",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106592",
+      "meningioma_samples": 1,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106665",
+      "meningioma_samples": 19,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106720",
+      "meningioma_samples": 17,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "106914",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "107190",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "107248",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "107429",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 20,
+      "labels": "3"
+    },
+    {
+      "patient_id": "107494",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "107495",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 18,
+      "labels": "3"
+    },
+    {
+      "patient_id": "107505",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 17,
+      "labels": "3"
+    },
+    {
+      "patient_id": "107743",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 14,
+      "labels": "3"
+    },
+    {
+      "patient_id": "107747",
+      "meningioma_samples": 0,
+      "glioma_samples": 15,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "107946",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "108479",
+      "meningioma_samples": 0,
+      "glioma_samples": 2,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "108514",
+      "meningioma_samples": 18,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "108550",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "108590",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "108858",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 15,
+      "labels": "3"
+    },
+    {
+      "patient_id": "108931",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 15,
+      "labels": "3"
+    },
+    {
+      "patient_id": "108945",
+      "meningioma_samples": 12,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "109350",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "109411",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "109471",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 16,
+      "labels": "3"
+    },
+    {
+      "patient_id": "109769",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 14,
+      "labels": "3"
+    },
+    {
+      "patient_id": "109898",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 15,
+      "labels": "3"
+    },
+    {
+      "patient_id": "109968",
+      "meningioma_samples": 12,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "110116",
+      "meningioma_samples": 5,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "110518",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 12,
+      "labels": "3"
+    },
+    {
+      "patient_id": "110537",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 13,
+      "labels": "3"
+    },
+    {
+      "patient_id": "110808",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "110993",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 12,
+      "labels": "3"
+    },
+    {
+      "patient_id": "111075",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 17,
+      "labels": "3"
+    },
+    {
+      "patient_id": "111077",
+      "meningioma_samples": 10,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "111125",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 14,
+      "labels": "3"
+    },
+    {
+      "patient_id": "111366",
+      "meningioma_samples": 12,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "111532",
+      "meningioma_samples": 11,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "111696",
+      "meningioma_samples": 1,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "111710",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "111785",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 13,
+      "labels": "3"
+    },
+    {
+      "patient_id": "112002",
+      "meningioma_samples": 12,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "112027",
+      "meningioma_samples": 0,
+      "glioma_samples": 2,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "112062",
+      "meningioma_samples": 10,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "112074",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 14,
+      "labels": "3"
+    },
+    {
+      "patient_id": "112105",
+      "meningioma_samples": 0,
+      "glioma_samples": 24,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "112252",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "112552",
+      "meningioma_samples": 21,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "112648",
+      "meningioma_samples": 10,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "112649",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 16,
+      "labels": "3"
+    },
+    {
+      "patient_id": "112650",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "112746",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 12,
+      "labels": "3"
+    },
+    {
+      "patient_id": "112847",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 13,
+      "labels": "3"
+    },
+    {
+      "patient_id": "113098",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "113274",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 10,
+      "labels": "3"
+    },
+    {
+      "patient_id": "113435",
+      "meningioma_samples": 20,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "113554",
+      "meningioma_samples": 10,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "113614",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "113741",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 8,
+      "labels": "3"
+    },
+    {
+      "patient_id": "113805",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "113971",
+      "meningioma_samples": 2,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "114018",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "114040",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 9,
+      "labels": "3"
+    },
+    {
+      "patient_id": "114094",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 13,
+      "labels": "3"
+    },
+    {
+      "patient_id": "114359",
+      "meningioma_samples": 19,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "114361",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 10,
+      "labels": "3"
+    },
+    {
+      "patient_id": "114417",
+      "meningioma_samples": 4,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "53669",
+      "meningioma_samples": 1,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "58392",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 1,
+      "labels": "3"
+    },
+    {
+      "patient_id": "88510",
+      "meningioma_samples": 1,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "88670",
+      "meningioma_samples": 0,
+      "glioma_samples": 12,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "90284",
+      "meningioma_samples": 0,
+      "glioma_samples": 19,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "92897",
+      "meningioma_samples": 0,
+      "glioma_samples": 4,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "93329",
+      "meningioma_samples": 0,
+      "glioma_samples": 5,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "93825",
+      "meningioma_samples": 0,
+      "glioma_samples": 7,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "94731",
+      "meningioma_samples": 0,
+      "glioma_samples": 3,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "95142",
+      "meningioma_samples": 0,
+      "glioma_samples": 9,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "95969",
+      "meningioma_samples": 1,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "96587",
+      "meningioma_samples": 0,
+      "glioma_samples": 4,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "97374",
+      "meningioma_samples": 5,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "97416",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 24,
+      "labels": "3"
+    },
+    {
+      "patient_id": "97461",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 25,
+      "labels": "3"
+    },
+    {
+      "patient_id": "97481",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 14,
+      "labels": "3"
+    },
+    {
+      "patient_id": "97599",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 7,
+      "labels": "3"
+    },
+    {
+      "patient_id": "97607",
+      "meningioma_samples": 12,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "97609",
+      "meningioma_samples": 0,
+      "glioma_samples": 10,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "97737",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "97793",
+      "meningioma_samples": 1,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "97875",
+      "meningioma_samples": 8,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "97890",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 14,
+      "labels": "3"
+    },
+    {
+      "patient_id": "97943",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "98241",
+      "meningioma_samples": 19,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "98472",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 18,
+      "labels": "3"
+    },
+    {
+      "patient_id": "98652",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 12,
+      "labels": "3"
+    },
+    {
+      "patient_id": "98871",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 20,
+      "labels": "3"
+    },
+    {
+      "patient_id": "98874",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 16,
+      "labels": "3"
+    },
+    {
+      "patient_id": "98889",
+      "meningioma_samples": 0,
+      "glioma_samples": 6,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "98992",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 25,
+      "labels": "3"
+    },
+    {
+      "patient_id": "98995",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 16,
+      "labels": "3"
+    },
+    {
+      "patient_id": "99017",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "99089",
+      "meningioma_samples": 13,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "99162",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "99223",
+      "meningioma_samples": 0,
+      "glioma_samples": 0,
+      "pituitary_samples": 21,
+      "labels": "3"
+    },
+    {
+      "patient_id": "99288",
+      "meningioma_samples": 3,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "99308",
+      "meningioma_samples": 15,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "99815",
+      "meningioma_samples": 6,
+      "glioma_samples": 0,
+      "pituitary_samples": 0,
+      "labels": "1"
+    },
+    {
+      "patient_id": "MR017260F",
+      "meningioma_samples": 0,
+      "glioma_samples": 23,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR024780B",
+      "meningioma_samples": 0,
+      "glioma_samples": 8,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR024780D",
+      "meningioma_samples": 0,
+      "glioma_samples": 7,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR024780E",
+      "meningioma_samples": 0,
+      "glioma_samples": 7,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR024780G",
+      "meningioma_samples": 0,
+      "glioma_samples": 29,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR026175C",
+      "meningioma_samples": 0,
+      "glioma_samples": 18,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR026175E",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR029209E",
+      "meningioma_samples": 0,
+      "glioma_samples": 24,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR029209G",
+      "meningioma_samples": 0,
+      "glioma_samples": 20,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR029209I",
+      "meningioma_samples": 0,
+      "glioma_samples": 26,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR031409B",
+      "meningioma_samples": 0,
+      "glioma_samples": 7,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR032322C",
+      "meningioma_samples": 0,
+      "glioma_samples": 38,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR033389B",
+      "meningioma_samples": 0,
+      "glioma_samples": 24,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR033420",
+      "meningioma_samples": 0,
+      "glioma_samples": 26,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR034694",
+      "meningioma_samples": 0,
+      "glioma_samples": 15,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR034997",
+      "meningioma_samples": 0,
+      "glioma_samples": 21,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR036496B",
+      "meningioma_samples": 0,
+      "glioma_samples": 16,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR037458B",
+      "meningioma_samples": 0,
+      "glioma_samples": 21,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR037458C",
+      "meningioma_samples": 0,
+      "glioma_samples": 19,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR038469",
+      "meningioma_samples": 0,
+      "glioma_samples": 18,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR039473",
+      "meningioma_samples": 0,
+      "glioma_samples": 15,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR039473B",
+      "meningioma_samples": 0,
+      "glioma_samples": 23,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR040240",
+      "meningioma_samples": 0,
+      "glioma_samples": 28,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR040240B",
+      "meningioma_samples": 0,
+      "glioma_samples": 25,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR040240C",
+      "meningioma_samples": 0,
+      "glioma_samples": 31,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR040240D",
+      "meningioma_samples": 0,
+      "glioma_samples": 13,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR047953C",
+      "meningioma_samples": 0,
+      "glioma_samples": 9,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048294",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048294B",
+      "meningioma_samples": 0,
+      "glioma_samples": 15,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048297",
+      "meningioma_samples": 0,
+      "glioma_samples": 17,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048621B",
+      "meningioma_samples": 0,
+      "glioma_samples": 19,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048944",
+      "meningioma_samples": 0,
+      "glioma_samples": 23,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048944B",
+      "meningioma_samples": 0,
+      "glioma_samples": 13,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048994",
+      "meningioma_samples": 0,
+      "glioma_samples": 26,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR048994B",
+      "meningioma_samples": 0,
+      "glioma_samples": 17,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049019C",
+      "meningioma_samples": 0,
+      "glioma_samples": 12,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049019G",
+      "meningioma_samples": 0,
+      "glioma_samples": 15,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049104",
+      "meningioma_samples": 0,
+      "glioma_samples": 9,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049104B",
+      "meningioma_samples": 0,
+      "glioma_samples": 8,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049142",
+      "meningioma_samples": 0,
+      "glioma_samples": 10,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049242C",
+      "meningioma_samples": 0,
+      "glioma_samples": 5,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049358",
+      "meningioma_samples": 0,
+      "glioma_samples": 26,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049453",
+      "meningioma_samples": 0,
+      "glioma_samples": 25,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049453B",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR049942B",
+      "meningioma_samples": 0,
+      "glioma_samples": 10,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR050135B",
+      "meningioma_samples": 0,
+      "glioma_samples": 34,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR050687",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR050687C",
+      "meningioma_samples": 0,
+      "glioma_samples": 18,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR050791B",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051461",
+      "meningioma_samples": 0,
+      "glioma_samples": 23,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051461B",
+      "meningioma_samples": 0,
+      "glioma_samples": 9,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051586",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051644",
+      "meningioma_samples": 0,
+      "glioma_samples": 37,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051644B",
+      "meningioma_samples": 0,
+      "glioma_samples": 16,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051644C",
+      "meningioma_samples": 0,
+      "glioma_samples": 35,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051651",
+      "meningioma_samples": 0,
+      "glioma_samples": 17,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051651B",
+      "meningioma_samples": 0,
+      "glioma_samples": 19,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051796",
+      "meningioma_samples": 0,
+      "glioma_samples": 20,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR051796B",
+      "meningioma_samples": 0,
+      "glioma_samples": 11,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR052550",
+      "meningioma_samples": 0,
+      "glioma_samples": 18,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR052585B",
+      "meningioma_samples": 0,
+      "glioma_samples": 6,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR053110B",
+      "meningioma_samples": 0,
+      "glioma_samples": 19,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR053110E",
+      "meningioma_samples": 0,
+      "glioma_samples": 22,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR053241C",
+      "meningioma_samples": 0,
+      "glioma_samples": 4,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR054683",
+      "meningioma_samples": 0,
+      "glioma_samples": 6,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR054875",
+      "meningioma_samples": 0,
+      "glioma_samples": 9,
+      "pituitary_samples": 0,
+      "labels": "2"
+    },
+    {
+      "patient_id": "MR056144",
+      "meningioma_samples": 0,
+      "glioma_samples": 5,
+      "pituitary_samples": 0,
+      "labels": "2"
+    }
+  ],
+  "image_shape_distribution": [
+    {
+      "image_height": 256,
+      "image_width": 256,
+      "sample_count": 15
+    },
+    {
+      "image_height": 512,
+      "image_width": 512,
+      "sample_count": 3049
+    }
+  ],
+  "image_intensity_distribution": {
+    "global_min": 0.0,
+    "global_max": 12728.0,
+    "global_mean": 468.89799895383015,
+    "global_std": 637.4209617309876,
+    "total_pixels": 800260096,
+    "sample_mean_min": 44.886505126953125,
+    "sample_mean_max": 1238.030517578125
+  },
+  "duplicate_sample_ids": {},
+  "patients_with_multiple_class_labels": [],
+  "empty_masks": [],
+  "malformed_files": [],
+  "sample_figures": [
+    "reports/sample_overlays/sample_0234_meningioma.png",
+    "reports/sample_overlays/sample_0305_meningioma.png",
+    "reports/sample_overlays/sample_0350_meningioma.png",
+    "reports/sample_overlays/sample_0690_meningioma.png",
+    "reports/sample_overlays/sample_0915_glioma.png",
+    "reports/sample_overlays/sample_2360_glioma.png",
+    "reports/sample_overlays/sample_2493_glioma.png",
+    "reports/sample_overlays/sample_2768_glioma.png",
+    "reports/sample_overlays/sample_1085_pituitary.png",
+    "reports/sample_overlays/sample_1151_pituitary.png",
+    "reports/sample_overlays/sample_1323_pituitary.png",
+    "reports/sample_overlays/sample_1687_pituitary.png"
+  ]
+}

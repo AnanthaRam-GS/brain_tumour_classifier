@@ -28,3 +28,15 @@ excluded from version control.
 Generated report images belong in `reports/sample_overlays/` and
 `reports/figures/`. Project-relative locations are defined in
 `configs/paths.yaml`.
+
+## Raw dataset audit
+
+The audit validates every raw MATLAB sample independently and writes a raw
+manifest, summary tables, JSON diagnostics, and deterministic sample figures:
+
+```bash
+python -m src.data.audit_dataset --dataset-root 1512427
+```
+
+The command reads but never modifies the raw dataset. A malformed sample is
+recorded in the audit outputs without terminating the remaining audit.

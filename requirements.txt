@@ -9,6 +9,7 @@ pyarrow
 
 # Image processing and classical feature extraction
 Pillow
+matplotlib
 scikit-image
 scikit-learn
 
