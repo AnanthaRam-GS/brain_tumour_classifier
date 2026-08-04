@@ -9,6 +9,8 @@ data/processed/samples/*
 data/processed/images/*
 data/processed/masks/*
 data/processed/overlays/*
+data/processed/audit_overlays/*
+data/processed/manifest.csv
 data/splits/*
 data/features/*
 !data/processed/samples/.gitkeep
