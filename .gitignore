@@ -18,6 +18,8 @@ data/features/*
 !data/processed/masks/.gitkeep
 !data/processed/overlays/.gitkeep
 !data/splits/.gitkeep
+!data/splits/patient_split.csv
+!data/splits/split_metadata.json
 !data/features/.gitkeep
 
 # Generated reports

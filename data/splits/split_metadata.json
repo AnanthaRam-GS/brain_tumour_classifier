@@ -1,0 +1,91 @@
+{
+  "split_version": "phase1_patient_split_v1",
+  "strategy": "Deterministic class-aware split over unique patient_id values.",
+  "random_seed": 42,
+  "train_ratio": 0.7,
+  "val_ratio": 0.15,
+  "test_ratio": 0.15,
+  "total_samples": 3064,
+  "total_patients": 233,
+  "total_classes": 3,
+  "sample_counts_by_split": {
+    "train": 2120,
+    "val": 446,
+    "test": 498
+  },
+  "patient_counts_by_split": {
+    "train": 162,
+    "val": 34,
+    "test": 37
+  },
+  "sample_class_counts_by_split": {
+    "train": {
+      "meningioma": 517,
+      "glioma": 985,
+      "pituitary": 618
+    },
+    "val": {
+      "meningioma": 74,
+      "glioma": 219,
+      "pituitary": 153
+    },
+    "test": {
+      "meningioma": 117,
+      "glioma": 222,
+      "pituitary": 159
+    }
+  },
+  "patient_class_counts_by_split": {
+    "train": {
+      "meningioma": 57,
+      "glioma": 62,
+      "pituitary": 43
+    },
+    "val": {
+      "meningioma": 12,
+      "glioma": 13,
+      "pituitary": 9
+    },
+    "test": {
+      "meningioma": 13,
+      "glioma": 14,
+      "pituitary": 10
+    }
+  },
+  "source_manifest": "data/processed/manifest.csv",
+  "cvind_policy": "Historical/reference only; not used to generate the Phase 1 train/validation/test split.",
+  "generated_at": "2026-08-31T13:00:02.988292+00:00",
+  "validation_summary": {
+    "valid": true,
+    "row_count": 3064,
+    "unique_patients": 233,
+    "duplicate_sample_ids": 0,
+    "missing_sample_ids": [],
+    "extra_sample_ids": [],
+    "patient_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "classes_by_split": {
+      "train": [
+        1,
+        2,
+        3
+      ],
+      "val": [
+        1,
+        2,
+        3
+      ],
+      "test": [
+        1,
+        2,
+        3
+      ]
+    },
+    "all_labels_unchanged": true,
+    "one_split_per_patient": true,
+    "sorted_by_sample_id": true
+  }
+}

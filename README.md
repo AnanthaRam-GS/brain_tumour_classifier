@@ -97,3 +97,31 @@ data/processed/
 
 The run summary and validation findings are written to
 `reports/dataset_conversion.json`.
+
+## Phase 1 patient split
+
+Phase 1 uses one definitive patient-level train/validation/test split for all
+classical feature extraction and machine-learning experiments. The split is
+70/15/15 over unique `patient_id` values, uses random seed `42`, and is
+stratified by the patient's tumor class. Slice-level splitting is forbidden:
+multiple MRI slices can come from the same patient, so splitting slices
+directly would leak patient-specific information into validation or test
+results.
+
+Generate the shared split with:
+
+```bash
+python -m src.data.create_patient_split
+```
+
+The generated files are:
+
+- `data/splits/patient_split.csv`
+- `data/splits/split_metadata.json`
+
+`1512427/cvind.mat` was inspected and found to be patient-disjoint under the
+dataset's numeric sample ordering, but it is retained only as historical and
+reference metadata. It is not used to generate the Phase 1 split.
+
+All feature extraction and ML code must consume `data/splits/patient_split.csv`.
+Individual modules must never call their own `train_test_split` over slices.
