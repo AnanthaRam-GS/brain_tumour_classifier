@@ -5,6 +5,156 @@ MRI images from the original Figshare brain tumour dataset. The workflow covers
 validated conversion, preprocessing, classical feature engineering, model
 development, and evaluation.
 
+## Fresh Clone / Team Setup
+
+Every teammate should start from the same baseline commit, download the
+original Figshare dataset independently, generate local processed data, and use
+the Git-tracked split and shared contracts. Raw MATLAB files, processed NPZs,
+PNG derivatives, and feature CSVs are not exchanged through Git.
+
+Create and activate a local Python environment on macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Place the downloaded Figshare dataset at the repository root with this exact
+layout:
+
+```text
+PROJECT_ROOT/
+├── 1512427/
+│   ├── brainTumorDataPublic_1-766/
+│   ├── brainTumorDataPublic_767-1532/
+│   ├── brainTumorDataPublic_1533-2298/
+│   ├── brainTumorDataPublic_2299-3064/
+│   ├── cvind.mat
+│   └── README 2024.txt
+├── configs/
+├── data/
+├── src/
+└── ...
+```
+
+Keep the directory name `1512427`, do not rename numbered MATLAB sample files,
+and do not modify raw data. The raw dataset is intentionally ignored by Git.
+
+Audit the raw dataset:
+
+```bash
+python -m src.data.audit_dataset --dataset-root 1512427
+```
+
+Expected audit checkpoints:
+
+- 3064 numbered MRI samples
+- 3064 valid samples
+- 0 malformed samples
+- 233 patients
+- meningioma: 708 samples / 82 patients
+- glioma: 1426 samples / 89 patients
+- pituitary: 930 samples / 62 patients
+- 3049 images at 512x512
+- 15 images at 256x256
+- 0 empty masks
+- 0 duplicate sample IDs
+
+If these checkpoints do not match, stop and resolve the dataset/setup issue
+before conversion or feature extraction.
+
+Generate the local NPZ dataset:
+
+```bash
+python -m src.data.convert_dataset \
+  --dataset-root 1512427 \
+  --raw-manifest reports/sample_manifest_raw.csv \
+  --output-root data/processed \
+  --report-path reports/dataset_conversion.json
+```
+
+Windows PowerShell one-line equivalent:
+
+```powershell
+python -m src.data.convert_dataset --dataset-root 1512427 --raw-manifest reports/sample_manifest_raw.csv --output-root data/processed --report-path reports/dataset_conversion.json
+```
+
+Expected canonical output is `data/processed/samples/{sample_id}.npz`, with
+3064 NPZ files. Each NPZ contains `image_raw`, `image_normalized`,
+`tumor_mask`, `tumor_border`, `label`, `patient_id`, and `sample_id`.
+`data/processed/samples/*.npz` is the canonical Phase 1 computational dataset.
+After conversion, feature modules should not read raw MATLAB files directly.
+PNG images, masks, and overlays are visualization/audit derivatives only.
+
+Do not regenerate the Phase 1 split during normal teammate setup. The
+definitive split files are already tracked in Git:
+
+- `data/splits/patient_split.csv`
+- `data/splits/split_metadata.json`
+
+Current frozen split:
+
+- seed: 42
+- version: `phase1_patient_split_v1`
+- patients: train 162, validation 34, test 37
+- samples: train 2120, validation 446, test 498
+
+The command `python -m src.data.create_patient_split` remains available as the
+reproducible generator for maintainers, but teammates should run it only if the
+project split is intentionally regenerated centrally.
+
+Verify the setup:
+
+```bash
+python -m pytest -q
+```
+
+Expected current baseline: 139 passed. One known non-failing warning may appear
+from the LBP convention/config test. Do not treat runtime as a requirement.
+
+Readiness checklist:
+
+- [ ] Clone/pull final baseline
+- [ ] Create/activate `.venv`
+- [ ] Install requirements
+- [ ] Download/place `1512427` dataset
+- [ ] Run raw audit
+- [ ] Confirm audit checkpoints
+- [ ] Run NPZ conversion
+- [ ] Confirm 3064 NPZ samples
+- [ ] Confirm Git-tracked patient split exists
+- [ ] Run full pytest
+- [ ] Start assigned feature/model branch
+
+## Do Not Bypass The Baseline
+
+Every feature extractor must use `src.data.feature_dataset`,
+`src.preprocessing.roi`, `src.features.config`, and
+`src.features.feature_table`. Model implementations must use
+`src.models.training`, `src.evaluation.metrics`, and `src.evaluation.results`.
+
+Do not use independent slice-level `train_test_split`, alternate
+normalization, custom MATLAB loading inside feature modules, custom ROI
+crop/resize logic, independently changed Review 1 feature parameters, or
+imputer/scaler fitting that uses validation or test data.
+
+Shared through Git: source code, tests, configs, README, and the patient split.
+Generated independently: raw dataset downloads, processed NPZ datasets, and
+PNG/mask/audit derivatives. Generated feature CSVs are ignored by default and
+may be exchanged later if combined-feature or cross-model experiments need
+them.
+
 ## Dataset
 
 The raw dataset is stored locally at `1512427/`. Its four numbered
