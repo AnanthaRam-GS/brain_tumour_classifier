@@ -19,8 +19,6 @@ data/features/*
 
 # Generated reports
 reports/sample_overlays/*
-reports/figures/*
-reports/experiments/*
 
 # Model weights
 models/*
