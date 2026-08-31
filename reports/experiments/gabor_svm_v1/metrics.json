@@ -1,0 +1,100 @@
+{
+  "experiment_name": "gabor_svm_v1",
+  "feature_set": "gabor",
+  "model_name": "svm_rbf",
+  "split_evaluated": "test",
+  "feature_count": 60,
+  "sample_count": 498,
+  "patient_count": 37,
+  "class_order": [
+    1,
+    2,
+    3
+  ],
+  "class_names": {
+    "1": "meningioma",
+    "2": "glioma",
+    "3": "pituitary"
+  },
+  "metrics": {
+    "accuracy": 0.7791164658634538,
+    "balanced_accuracy": 0.7433827150808283,
+    "macro_precision": 0.7722286544737021,
+    "macro_recall": 0.7433827150808283,
+    "macro_f1": 0.7526188690266894,
+    "weighted_precision": 0.7771205613867531,
+    "weighted_recall": 0.7791164658634538,
+    "weighted_f1": 0.7731089700451804
+  },
+  "per_class_metrics": {
+    "meningioma": {
+      "precision": 0.7340425531914894,
+      "recall": 0.5897435897435898,
+      "f1": 0.6540284360189573,
+      "support": 117
+    },
+    "glioma": {
+      "precision": 0.7854406130268199,
+      "recall": 0.9234234234234234,
+      "f1": 0.8488612836438924,
+      "support": 222
+    },
+    "pituitary": {
+      "precision": 0.7972027972027972,
+      "recall": 0.7169811320754716,
+      "f1": 0.7549668874172185,
+      "support": 159
+    }
+  },
+  "confusion_matrix": [
+    [
+      69,
+      26,
+      22
+    ],
+    [
+      10,
+      205,
+      7
+    ],
+    [
+      15,
+      30,
+      114
+    ]
+  ],
+  "roc_auc": {
+    "macro_ovr": 0.9043554647916049,
+    "weighted_ovr": 0.910483993133627,
+    "available": true,
+    "reason": ""
+  },
+  "model_parameters": {
+    "C": 1000.0,
+    "break_ties": false,
+    "cache_size": 200,
+    "class_weight": null,
+    "coef0": 0.0,
+    "decision_function_shape": "ovr",
+    "degree": 3,
+    "gamma": 0.001,
+    "kernel": "rbf",
+    "max_iter": -1,
+    "probability": true,
+    "random_state": 42,
+    "shrinking": true,
+    "tol": 0.001,
+    "verbose": false
+  },
+  "preprocessing": {
+    "imputation": "median",
+    "scaling": "standard",
+    "hyperparameter_selection_metric": "validation macro F1",
+    "hyperparameter_selection_note": "C/gamma grid-searched by fitting on train and scoring on validation only; test was not used until final evaluation."
+  },
+  "random_seed": 42,
+  "split_version": "phase1_patient_split_v1",
+  "feature_version": "v1",
+  "generated_at": "2026-08-31T16:22:16.526292+00:00",
+  "code_commit": "4e43952880e6ca55b7b0bd511d3d5385ea1c4cfb"
+}

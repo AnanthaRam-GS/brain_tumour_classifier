@@ -1,0 +1,53 @@
+{
+  "total_expected_samples": 3064,
+  "selected_samples": 3064,
+  "successfully_converted_samples": 3064,
+  "newly_converted_samples": 3064,
+  "skipped_existing_valid_samples": 0,
+  "overwritten_samples": 0,
+  "regenerated_invalid_or_incomplete_samples": 0,
+  "regenerated_sample_ids": [],
+  "failed_samples": 0,
+  "failures": [],
+  "output_image_shape_distribution": [
+    {
+      "image_height": 256,
+      "image_width": 256,
+      "count": 15
+    },
+    {
+      "image_height": 512,
+      "image_width": 512,
+      "count": 3049
+    }
+  ],
+  "raw_intensity_range": [
+    0.0,
+    12728.0
+  ],
+  "normalized_intensity_range": [
+    0.0,
+    1.0
+  ],
+  "samples_with_empty_foreground": [],
+  "samples_with_constant_foreground": [],
+  "samples_with_tumour_border_warnings": [],
+  "samples_with_output_dimensions_different_from_raw": [],
+  "missing_sample_ids": [],
+  "duplicate_sample_ids": {},
+  "mask_validation_failures": [],
+  "deterministic_audit_overlay_sample_ids": [
+    "67",
+    "153",
+    "172",
+    "481",
+    "824",
+    "2773",
+    "2939",
+    "3056",
+    "1064",
+    "1078",
+    "1245",
+    "1759"
+  ]
+}
