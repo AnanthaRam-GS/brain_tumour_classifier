@@ -145,3 +145,35 @@ for sample in iter_phase1_samples("train"):
 Feature modules must not create their own splits, read raw MATLAB files, or
 depend on PNG derivatives. ROI handling and any additional preprocessing belong
 in the common preprocessing layer, not inside individual feature extractors.
+
+## Phase 1 ROI contract
+
+Tumor ROI preprocessing is deterministic, sample-local, and performed in
+memory. It uses `sample.image_normalized` as the source image and
+`sample.tumor_mask` as the source annotation. The tight tumor bounding box is
+expanded to a centered square, padded with 10% contextual tissue on each side,
+and zero-padded at MRI boundaries when the desired square extends outside the
+image. ROI files are not persisted to disk.
+
+The shared ROI object keeps native-size views and standardized 128x128 views.
+Images are resized with bilinear interpolation, masks with nearest-neighbor
+interpolation, and resized masks are forced back to binary values. Both
+unmasked and masked ROI images are exposed; masked images are computed by
+multiplying the image by the final binary mask.
+
+```python
+from src.data.feature_dataset import iter_phase1_samples
+from src.preprocessing.roi import prepare_tumor_roi
+
+for sample in iter_phase1_samples("train"):
+    roi = prepare_tumor_roi(sample)
+    native_image = roi.roi_image
+    native_mask = roi.roi_mask
+    fixed_image = roi.roi_image_masked_resized
+```
+
+Future Phase 1 feature modules should use the shared ROI contract consistently:
+GLCM and LBP operate on native ROI data with tumor-mask-aware logic; DWT,
+HOG, and Gabor operate on standardized 128x128 masked ROIs; geometry uses the
+native tumor mask; intensity uses normalized image values from tumor-mask
+pixels. These algorithms are implemented separately from the ROI layer.
