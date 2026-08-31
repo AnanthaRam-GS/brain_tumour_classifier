@@ -125,3 +125,23 @@ reference metadata. It is not used to generate the Phase 1 split.
 
 All feature extraction and ML code must consume `data/splits/patient_split.csv`.
 Individual modules must never call their own `train_test_split` over slices.
+
+## Phase 1 data contract
+
+The canonical analytical input for handcrafted features is
+`data/processed/samples/{sample_id}.npz`, joined with the shared split in
+`data/splits/patient_split.csv`. Feature code must use the common loader so
+that sample IDs, patient IDs, labels, split membership, image arrays, and masks
+are validated consistently.
+
+```python
+from src.data.feature_dataset import iter_phase1_samples
+
+for sample in iter_phase1_samples("train"):
+    image = sample.image_normalized
+    mask = sample.tumor_mask
+```
+
+Feature modules must not create their own splits, read raw MATLAB files, or
+depend on PNG derivatives. ROI handling and any additional preprocessing belong
+in the common preprocessing layer, not inside individual feature extractors.
