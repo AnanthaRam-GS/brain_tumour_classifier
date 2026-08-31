@@ -177,3 +177,41 @@ GLCM and LBP operate on native ROI data with tumor-mask-aware logic; DWT,
 HOG, and Gabor operate on standardized 128x128 masked ROIs; geometry uses the
 native tumor mask; intensity uses normalized image values from tumor-mask
 pixels. These algorithms are implemented separately from the ROI layer.
+
+## Phase 1 feature table contract
+
+Every handcrafted feature extractor writes one row per MRI sample with this
+schema:
+
+```text
+sample_id, patient_id, label, split, <feature columns...>
+```
+
+The metadata columns must appear first and must match
+`data/splits/patient_split.csv` exactly for every included sample. Feature
+columns must be numeric, finite, unique, snake_case, and algorithm-prefixed,
+such as `glcm_contrast_mean`, `lbp_bin_00`, `hog_0000`, or
+`intensity_mean`. Feature tables are written in numeric `sample_id` order and
+future combined feature tables are merged by `sample_id` with strict
+`patient_id`, `label`, and `split` agreement.
+
+Feature modules must use the shared sample loader and ROI preprocessing. They
+must not create their own splits, read raw MATLAB files, depend on PNG
+derivatives, or silently reorder rows.
+
+Intended feature output paths:
+
+```text
+data/features/glcm/glcm_features.csv
+data/features/lbp/lbp_features.csv
+data/features/wavelet/wavelet_features.csv
+data/features/hog/hog_features.csv
+data/features/gabor/gabor_features.csv
+data/features/geometry/geometry_features.csv
+data/features/intensity/intensity_features.csv
+data/features/combined/combined_features.csv
+```
+
+Generated feature outputs remain ignored by default under `data/features/*`;
+directory placeholders stay tracked. Feature CSVs can be shared manually or
+selectively tracked later if their size and reproducibility policy justify it.
