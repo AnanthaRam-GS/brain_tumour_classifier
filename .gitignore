@@ -16,16 +16,14 @@ data/features/*
 !data/splits/.gitkeep
 !data/splits/patient_split.csv
 !data/splits/split_metadata.json
-!data/features/*/
-data/features/*/*
-!data/features/*/*_features.csv
-!data/features/*/*_metadata.json
 
 # Generated reports
 reports/sample_overlays/*
 reports/figures/*
+reports/experiments/*
 
 # Model weights
+models/*
 *.ckpt
 *.h5
 *.joblib

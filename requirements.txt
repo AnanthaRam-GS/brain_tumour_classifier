@@ -15,5 +15,9 @@ scikit-learn
 PyWavelets
 PyYAML
 
+# Model-specific Review 1 experiments
+xgboost
+joblib
+
 # Testing
 pytest
