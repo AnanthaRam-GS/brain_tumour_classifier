@@ -1,0 +1,104 @@
+{
+  "experiment_name": "wavelet_rf_v1",
+  "feature_set": "wavelet",
+  "model_name": "random_forest",
+  "split_evaluated": "test",
+  "feature_count": 28,
+  "sample_count": 498,
+  "patient_count": 37,
+  "class_order": [
+    1,
+    2,
+    3
+  ],
+  "class_names": {
+    "1": "meningioma",
+    "2": "glioma",
+    "3": "pituitary"
+  },
+  "metrics": {
+    "accuracy": 0.751004016064257,
+    "balanced_accuracy": 0.7170072830450188,
+    "macro_precision": 0.7324885749525887,
+    "macro_recall": 0.7170072830450188,
+    "macro_f1": 0.722365969548206,
+    "weighted_precision": 0.7465922073673484,
+    "weighted_recall": 0.751004016064257,
+    "weighted_f1": 0.7468114480186716
+  },
+  "per_class_metrics": {
+    "meningioma": {
+      "precision": 0.711340206185567,
+      "recall": 0.5897435897435898,
+      "f1": 0.6448598130841121,
+      "support": 117
+    },
+    "glioma": {
+      "precision": 0.8298755186721992,
+      "recall": 0.9009009009009009,
+      "f1": 0.8639308855291576,
+      "support": 222
+    },
+    "pituitary": {
+      "precision": 0.65625,
+      "recall": 0.660377358490566,
+      "f1": 0.658307210031348,
+      "support": 159
+    }
+  },
+  "confusion_matrix": [
+    [
+      69,
+      9,
+      39
+    ],
+    [
+      6,
+      200,
+      16
+    ],
+    [
+      22,
+      32,
+      105
+    ]
+  ],
+  "roc_auc": {
+    "macro_ovr": 0.9057833338363611,
+    "weighted_ovr": 0.9118311212004779,
+    "available": true,
+    "reason": ""
+  },
+  "model_parameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "max_depth": null,
+    "max_features": "log2",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 100,
+    "n_jobs": 1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "preprocessing": {
+    "imputation": "median",
+    "scaling": "standard",
+    "hyperparameter_selection_metric": "validation macro F1",
+    "hyperparameter_selection_note": "n_estimators/max_depth/min_samples_split/min_samples_leaf/max_features grid-searched by fitting on train and scoring on validation only (macro F1 primary, tie-break: validation balanced accuracy, then validation accuracy, then earliest grid position); test was not used until final evaluation. The final model is trained on train only (not train+val), mirroring src.models.svm.run_svm_experiment's convention."
+  },
+  "random_seed": 42,
+  "split_version": "phase1_patient_split_v1",
+  "feature_version": "v1",
+  "generated_at": "2026-08-31T17:50:16.046424+00:00",
+  "code_commit": "55bc27387a6b8b86096c49c2d412b5396fc812a9"
+}

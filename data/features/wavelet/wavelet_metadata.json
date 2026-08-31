@@ -1,0 +1,81 @@
+{
+  "feature_set_name": "wavelet",
+  "feature_version": "v1",
+  "algorithm": "2d_discrete_wavelet_transform (PyWavelets pywt.wavedec2, per frozen configs/features/wavelet.yaml)",
+  "parameters": {
+    "wavelet": "db2",
+    "level": 2,
+    "mode": "symmetric",
+    "retained_subbands": [
+      "L1_LH",
+      "L1_HL",
+      "L1_HH",
+      "L2_LL",
+      "L2_LH",
+      "L2_HL",
+      "L2_HH"
+    ],
+    "summary_statistics": [
+      "mean",
+      "std",
+      "energy",
+      "entropy"
+    ],
+    "energy_definition": "mean of squared coefficients per subband",
+    "entropy_definition": "Shannon entropy (nats) over a 64-bin histogram of raw coefficient values",
+    "status": "compliant with frozen configs/features/wavelet.yaml (feature_version v1)",
+    "run_scope": "full_dataset"
+  },
+  "input_representation": "roi_image_masked_resized (TumorROI.roi_image_masked_resized, tumor-masked, [0,1]-normalized, (128, 128) pixels)",
+  "roi_policy": "phase1_roi_contract_v1 (prepare_tumor_roi() actual: padding_fraction=0.1, standard_size=(128, 128), zero-padding for out-of-bounds)",
+  "source_split_version": "phase1_patient_split_v1",
+  "sample_count": 3064,
+  "feature_count": 28,
+  "feature_columns": [
+    "dwt_l1_lh_mean",
+    "dwt_l1_lh_std",
+    "dwt_l1_lh_energy",
+    "dwt_l1_lh_entropy",
+    "dwt_l1_hl_mean",
+    "dwt_l1_hl_std",
+    "dwt_l1_hl_energy",
+    "dwt_l1_hl_entropy",
+    "dwt_l1_hh_mean",
+    "dwt_l1_hh_std",
+    "dwt_l1_hh_energy",
+    "dwt_l1_hh_entropy",
+    "dwt_l2_ll_mean",
+    "dwt_l2_ll_std",
+    "dwt_l2_ll_energy",
+    "dwt_l2_ll_entropy",
+    "dwt_l2_lh_mean",
+    "dwt_l2_lh_std",
+    "dwt_l2_lh_energy",
+    "dwt_l2_lh_entropy",
+    "dwt_l2_hl_mean",
+    "dwt_l2_hl_std",
+    "dwt_l2_hl_energy",
+    "dwt_l2_hl_entropy",
+    "dwt_l2_hh_mean",
+    "dwt_l2_hh_std",
+    "dwt_l2_hh_energy",
+    "dwt_l2_hh_entropy"
+  ],
+  "generated_at": "2026-08-31T17:38:20.486464+00:00",
+  "code_commit": "55bc27387a6b8b86096c49c2d412b5396fc812a9",
+  "validation_summary": {
+    "sample_count": 3064,
+    "feature_count": 28,
+    "expected_feature_count": 28,
+    "samples_by_split": {
+      "train": 2120,
+      "test": 498,
+      "val": 446
+    },
+    "samples_by_label": {
+      "1": 708,
+      "2": 1426,
+      "3": 930
+    }
+  }
+}

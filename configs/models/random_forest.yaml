@@ -1,0 +1,61 @@
+model_name: random_forest
+algorithm: sklearn.ensemble.RandomForestClassifier
+random_state: 42
+description: >
+  Phase 1 Random Forest baseline. Hyperparameters are selected by grid
+  search: each candidate is fit on TRAIN only and scored on VALIDATION only
+  (primary metric macro F1; ties broken by higher validation balanced
+  accuracy, then higher validation accuracy, then by earliest position in
+  the candidate grid below). The test split is never used for selection.
+  The final model is trained on TRAIN ONLY using the frozen best
+  hyperparameters (mirrors src/models/svm.py's run_svm_experiment, which
+  fits on train, tunes on val, and evaluates the frozen model on test
+  without ever retraining on train+val).
+preprocessing:
+  imputation: median
+  scaling: standard
+  note: >
+    Random Forest does not require feature scaling, but the shared
+    src.models.training preprocessing contract (median impute + train-only
+    StandardScaler) is applied anyway for consistency with the SVM
+    experiment framework and because it is harmless to tree-based models.
+fixed_parameters:
+  class_weight: balanced
+  n_jobs: 1
+  bootstrap: true
+  criterion: gini
+class_weight_note: >
+  "balanced" is used because the three tumor classes are not evenly
+  represented in the dataset; this reweights classes inversely proportional
+  to their frequency in the training data without altering the training set
+  itself.
+n_jobs_note: >
+  n_jobs is fixed to 1 (rather than -1) for the hyperparameter search and
+  final fit to guarantee bit-for-bit determinism across reruns. sklearn's
+  RandomForestClassifier with n_jobs=1 combined with a fixed random_state
+  produces identical trees/predictions run to run; using n_jobs=-1 does not
+  change results for RandomForestClassifier fitting (tree building is still
+  seeded deterministically per-tree), but n_jobs=1 is kept to remove any
+  ambiguity and keep the reproducibility check trivially satisfiable.
+hyperparameter_search:
+  selection_metric: validation macro F1
+  tie_break:
+    - higher validation balanced accuracy
+    - higher validation accuracy
+    - earliest position in the candidate grid (deterministic insertion order)
+  grid:
+    n_estimators: [100, 300, 500]
+    max_depth: [null, 10, 20]
+    min_samples_split: [2, 5, 10]
+    min_samples_leaf: [1, 2, 4]
+    max_features: ["sqrt", "log2"]
+  grid_note: >
+    The full cartesian product (3x3x3x3x2 = 162 candidates) is too large for
+    a Phase 1 baseline (svm.py's own grid is a 5x6=30-candidate search), so
+    a curated subset of 30 candidates is used instead, built by varying one
+    or two hyperparameters at a time around a sensible center point
+    (n_estimators=300, max_depth=None, min_samples_split=2,
+    min_samples_leaf=1, max_features="sqrt") plus a handful of joint
+    combinations. The exact candidate list is defined in
+    src/models/random_forest.py::RF_CANDIDATE_GRID and logged verbatim in
+    each run's hyperparameter_search.json.
