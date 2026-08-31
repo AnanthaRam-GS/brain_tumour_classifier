@@ -1,0 +1,20 @@
+feature_set_name: lbp
+feature_version: v1
+algorithm: local_binary_pattern
+feature_prefix: lbp
+input_representation: native_roi_image_and_mask
+roi_policy: phase1_roi_contract_v1
+expected_feature_count: 10
+description: Uniform local binary pattern histogram over tumor-mask pixels in native ROI.
+parameters:
+  P: 8
+  R: 1
+  method: uniform
+  histogram:
+    use_pixels: tumor_mask_only
+    normalized: true
+  expected_bin_count: 10
+expected_output:
+  feature_count_rule: skimage uniform LBP with P=8 yields P + 2 histogram bins
+notes:
+  - Accumulate histogram values only at roi.roi_mask pixels.

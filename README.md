@@ -252,3 +252,21 @@ reports/experiments/<experiment_name>/
 ├── confusion_matrix.csv
 └── experiment_metadata.json
 ```
+
+## Phase 1 Handcrafted Feature Configuration
+
+The five Review 1 handcrafted feature algorithms use frozen YAML
+configurations under `configs/features/`. Teammates must load these configs
+instead of duplicating or changing parameter values in extractor code.
+Parameter changes require a new feature version and config update.
+
+| Feature | Input | Main parameters | Expected dimension |
+| --- | --- | --- | ---: |
+| GLCM | native ROI image + mask | 32 gray levels; distances 1, 2, 4; angles 0, 45, 90, 135; 6 properties; mean/std aggregation | 12 |
+| LBP | native ROI image + mask | P=8; R=1; uniform; tumor-mask-only normalized histogram | 10 |
+| DWT | standardized 128x128 masked ROI | db2; level 2; symmetric; L1 details plus LL2/L2 details; mean/std/energy/entropy | 28 |
+| HOG | standardized 128x128 masked ROI | 9 orientations; 16x16 pixels/cell; 2x2 cells/block; L2-Hys | 1764 |
+| Gabor | standardized 128x128 masked ROI | frequencies 0.10, 0.20, 0.30; angles 0, 45, 90, 135; 5 response statistics | 60 |
+
+Geometry and intensity are auxiliary descriptor families and are not among the
+five assigned Review 1 algorithms.

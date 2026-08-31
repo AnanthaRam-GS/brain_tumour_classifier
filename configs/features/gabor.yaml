@@ -1,0 +1,33 @@
+feature_set_name: gabor
+feature_version: v1
+algorithm: gabor_filter_bank
+feature_prefix: gabor
+input_representation: roi_image_masked_resized
+roi_policy: phase1_roi_contract_v1
+expected_feature_count: 60
+description: Compact Gabor filter-bank summaries over standardized 128x128 masked ROI.
+parameters:
+  implementation: scikit-image gabor or equivalent standard implementation
+  frequencies:
+    - 0.10
+    - 0.20
+    - 0.30
+  orientations_degrees:
+    - 0
+    - 45
+    - 90
+    - 135
+  sigma_x: null
+  sigma_y: null
+  n_stds: 3
+  offset: 0
+  response_statistics:
+    - real_mean
+    - real_std
+    - magnitude_mean
+    - magnitude_std
+    - magnitude_energy
+expected_output:
+  feature_count_rule: 3 frequencies x 4 orientations x 5 response statistics
+notes:
+  - Future extraction should summarize each frequency-orientation response separately.

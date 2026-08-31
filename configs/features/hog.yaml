@@ -1,0 +1,26 @@
+feature_set_name: hog
+feature_version: v1
+algorithm: histogram_of_oriented_gradients
+feature_prefix: hog
+input_representation: roi_image_masked_resized
+roi_policy: phase1_roi_contract_v1
+expected_feature_count: 1764
+description: HOG vector over standardized 128x128 masked ROI.
+parameters:
+  input_size:
+    - 128
+    - 128
+  orientations: 9
+  pixels_per_cell:
+    - 16
+    - 16
+  cells_per_block:
+    - 2
+    - 2
+  block_norm: L2-Hys
+  transform_sqrt: false
+  feature_vector: true
+expected_output:
+  feature_count_rule: 7 x 7 blocks x 2 x 2 cells per block x 9 orientations
+notes:
+  - 128x128 input with 16x16 cells produces 8x8 cells and 7x7 blocks.

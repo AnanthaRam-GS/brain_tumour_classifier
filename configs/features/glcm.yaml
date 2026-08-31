@@ -1,0 +1,44 @@
+feature_set_name: glcm
+feature_version: v1
+algorithm: gray_level_cooccurrence_matrix
+feature_prefix: glcm
+input_representation: native_roi_image_and_mask
+roi_policy: phase1_roi_contract_v1
+expected_feature_count: 12
+description: Mask-aware gray-level co-occurrence texture summaries over native tumor ROI.
+parameters:
+  gray_levels: 32
+  distances:
+    - 1
+    - 2
+    - 4
+  angles_degrees:
+    - 0
+    - 45
+    - 90
+    - 135
+  symmetric: true
+  normed: true
+  properties:
+    - contrast
+    - dissimilarity
+    - homogeneity
+    - energy
+    - correlation
+    - ASM
+  aggregation:
+    - mean
+    - std
+  quantization:
+    source_range:
+      - 0.0
+      - 1.0
+    method: uniform
+    levels: 32
+  mask_policy:
+    - only pixel pairs where BOTH pixels lie inside tumor_mask
+    - do not include zero-filled contextual background as valid GLCM pairs
+expected_output:
+  feature_count_rule: 6 properties x 2 aggregation statistics after aggregation across all distance-angle combinations
+notes:
+  - Future extractors must not call graycomatrix over the entire zero-padded ROI if background zeros can dominate counts.

@@ -12,6 +12,8 @@ Pillow
 matplotlib
 scikit-image
 scikit-learn
+PyWavelets
+PyYAML
 
 # Testing
 pytest

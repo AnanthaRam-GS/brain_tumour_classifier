@@ -1,0 +1,29 @@
+feature_set_name: wavelet
+feature_version: v1
+algorithm: 2d_discrete_wavelet_transform
+feature_prefix: dwt
+input_representation: roi_image_masked_resized
+roi_policy: phase1_roi_contract_v1
+expected_feature_count: 28
+description: Two-level 2D DWT summaries over standardized 128x128 masked ROI.
+parameters:
+  wavelet: db2
+  level: 2
+  mode: symmetric
+  retained_subbands:
+    - L1_LH
+    - L1_HL
+    - L1_HH
+    - L2_LL
+    - L2_LH
+    - L2_HL
+    - L2_HH
+  summary_statistics:
+    - mean
+    - std
+    - energy
+    - entropy
+expected_output:
+  feature_count_rule: 7 retained subbands x 4 summary statistics
+notes:
+  - LL2 is included explicitly as L2_LL.
