@@ -215,3 +215,40 @@ data/features/combined/combined_features.csv
 Generated feature outputs remain ignored by default under `data/features/*`;
 directory placeholders stay tracked. Feature CSVs can be shared manually or
 selectively tracked later if their size and reproducibility policy justify it.
+
+## Phase 1 Classical ML and Evaluation Contract
+
+The canonical model input is a validated feature CSV with metadata columns
+`sample_id`, `patient_id`, `label`, and `split`, followed by numeric feature
+columns. Metadata columns never enter `X`. The `split` column alone controls
+train, validation, and test membership; model code must not create its own
+split or concatenate train and validation automatically.
+
+Class mapping is fixed:
+
+```text
+1 = meningioma
+2 = glioma
+3 = pituitary
+```
+
+Classical ML preprocessing is fit only on training features. The default Phase
+1 policy is median imputation followed by `StandardScaler`, both fit on train
+and then applied to train, validation, and test. Validation is for future model
+choice and tuning. Test is the final held-out evaluation and must not be used
+to choose hyperparameters.
+
+Common metrics are accuracy, balanced accuracy, macro/weighted precision,
+recall, and F1, plus per-class precision, recall, F1, support, and a confusion
+matrix. Confusion matrix class order is always `[1, 2, 3]`. ROC-AUC is recorded
+only when valid class scores are available.
+
+Standard experiment outputs belong under:
+
+```text
+reports/experiments/<experiment_name>/
+├── metrics.json
+├── predictions.csv
+├── confusion_matrix.csv
+└── experiment_metadata.json
+```
