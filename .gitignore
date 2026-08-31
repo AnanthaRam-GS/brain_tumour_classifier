@@ -23,7 +23,6 @@ data/features/*/*
 
 # Generated reports
 reports/sample_overlays/*
-reports/figures/*
 
 # Model weights
 *.ckpt
