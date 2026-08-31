@@ -13,20 +13,13 @@ data/processed/audit_overlays/*
 data/processed/manifest.csv
 data/splits/*
 data/features/*
-!data/processed/samples/.gitkeep
-!data/processed/images/.gitkeep
-!data/processed/masks/.gitkeep
-!data/processed/overlays/.gitkeep
 !data/splits/.gitkeep
 !data/splits/patient_split.csv
 !data/splits/split_metadata.json
-!data/features/.gitkeep
 
 # Generated reports
 reports/sample_overlays/*
 reports/figures/*
-!reports/sample_overlays/.gitkeep
-!reports/figures/.gitkeep
 
 # Model weights
 *.ckpt
