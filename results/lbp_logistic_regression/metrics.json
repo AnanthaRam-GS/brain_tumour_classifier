@@ -1,0 +1,36 @@
+{
+    "model": "LogisticRegression",
+    "feature_set": "LBP",
+    "feature_count": 10,
+    "classes": {
+        "1": "Meningioma",
+        "2": "Glioma",
+        "3": "Pituitary"
+    },
+    "random_state": 42,
+    "train_samples": 2120,
+    "validation_samples": 446,
+    "test_samples": 498,
+    "validation_metrics": {
+        "accuracy": 0.5896860986547086,
+        "balanced_accuracy": 0.49726680750049,
+        "macro_precision": 0.502164033093722,
+        "macro_recall": 0.49726680750049,
+        "macro_f1": 0.4973428084472367,
+        "weighted_precision": 0.5767219304798441,
+        "weighted_recall": 0.5896860986547086,
+        "weighted_f1": 0.5804127613809815,
+        "roc_auc_ovr_macro": 0.7439897686178304
+    },
+    "test_metrics": {
+        "accuracy": 0.6144578313253012,
+        "balanced_accuracy": 0.5480741990175954,
+        "macro_precision": 0.5685729096277921,
+        "macro_recall": 0.5480741990175954,
+        "macro_f1": 0.5447837555613565,
+        "weighted_precision": 0.5942421647601598,
+        "weighted_recall": 0.6144578313253012,
+        "weighted_f1": 0.5904246379562866,
+        "roc_auc_ovr_macro": 0.7506050460149168
+    }
+}

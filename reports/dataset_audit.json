@@ -1912,24 +1912,24 @@
     "global_std": 637.4209617309876,
     "total_pixels": 800260096,
     "sample_mean_min": 44.886505126953125,
-    "sample_mean_max": 1238.030517578125
+    "sample_mean_max": 1238.0303955078125
   },
   "duplicate_sample_ids": {},
   "patients_with_multiple_class_labels": [],
   "empty_masks": [],
   "malformed_files": [],
   "sample_figures": [
-    "reports/sample_overlays/sample_0234_meningioma.png",
-    "reports/sample_overlays/sample_0305_meningioma.png",
-    "reports/sample_overlays/sample_0350_meningioma.png",
-    "reports/sample_overlays/sample_0690_meningioma.png",
-    "reports/sample_overlays/sample_0915_glioma.png",
-    "reports/sample_overlays/sample_2360_glioma.png",
-    "reports/sample_overlays/sample_2493_glioma.png",
-    "reports/sample_overlays/sample_2768_glioma.png",
-    "reports/sample_overlays/sample_1085_pituitary.png",
-    "reports/sample_overlays/sample_1151_pituitary.png",
-    "reports/sample_overlays/sample_1323_pituitary.png",
-    "reports/sample_overlays/sample_1687_pituitary.png"
+    "reports\\sample_overlays\\sample_0234_meningioma.png",
+    "reports\\sample_overlays\\sample_0305_meningioma.png",
+    "reports\\sample_overlays\\sample_0350_meningioma.png",
+    "reports\\sample_overlays\\sample_0690_meningioma.png",
+    "reports\\sample_overlays\\sample_0915_glioma.png",
+    "reports\\sample_overlays\\sample_2360_glioma.png",
+    "reports\\sample_overlays\\sample_2493_glioma.png",
+    "reports\\sample_overlays\\sample_2768_glioma.png",
+    "reports\\sample_overlays\\sample_1085_pituitary.png",
+    "reports\\sample_overlays\\sample_1151_pituitary.png",
+    "reports\\sample_overlays\\sample_1323_pituitary.png",
+    "reports\\sample_overlays\\sample_1687_pituitary.png"
   ]
 }

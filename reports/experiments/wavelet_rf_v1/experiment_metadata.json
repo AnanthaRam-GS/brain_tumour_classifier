@@ -1,0 +1,51 @@
+{
+  "experiment_name": "wavelet_rf_v1",
+  "feature_set": "wavelet",
+  "model_name": "random_forest",
+  "split_evaluated": "test",
+  "feature_count": 28,
+  "sample_count": 498,
+  "patient_count": 37,
+  "class_order": [
+    1,
+    2,
+    3
+  ],
+  "class_names": {
+    "1": "meningioma",
+    "2": "glioma",
+    "3": "pituitary"
+  },
+  "model_parameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "max_depth": null,
+    "max_features": "log2",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 100,
+    "n_jobs": 1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "preprocessing": {
+    "imputation": "median",
+    "scaling": "standard",
+    "hyperparameter_selection_metric": "validation macro F1",
+    "hyperparameter_selection_note": "n_estimators/max_depth/min_samples_split/min_samples_leaf/max_features grid-searched by fitting on train and scoring on validation only (macro F1 primary, tie-break: validation balanced accuracy, then validation accuracy, then earliest grid position); test was not used until final evaluation. The final model is trained on train only (not train+val), mirroring src.models.svm.run_svm_experiment's convention."
+  },
+  "random_seed": 42,
+  "split_version": "phase1_patient_split_v1",
+  "feature_version": "v1",
+  "generated_at": "2026-08-31T17:50:16.046424+00:00",
+  "code_commit": "55bc27387a6b8b86096c49c2d412b5396fc812a9"
+}
