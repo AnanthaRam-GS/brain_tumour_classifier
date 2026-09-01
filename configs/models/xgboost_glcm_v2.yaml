@@ -1,0 +1,59 @@
+model_name: xgboost
+model_version: v2
+random_seed: 42
+feature_set: glcm_v2
+objective: multi:softprob
+num_class: 3
+eval_metric: mlogloss
+preprocessing:
+  imputation: median
+  scaling: null
+fixed_parameters:
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 1
+  gamma: 0
+  reg_alpha: 0
+  reg_lambda: 1
+  tree_method: hist
+  verbosity: 0
+  n_jobs: -1
+candidate_grid:
+  n_estimators:
+    - 150
+    - 200
+    - 300
+  max_depth:
+    - 3
+    - 5
+    - 7
+  learning_rate:
+    - 0.03
+    - 0.05
+    - 0.10
+weighting_modes:
+  - none
+  - class_balanced
+  - patient_balanced
+  - class_and_patient_balanced
+selection_policy:
+  primary_metric: macro_f1
+  tie_breakers:
+    - balanced_accuracy
+    - meningioma_f1
+    - accuracy
+    - lower_log_loss
+    - lower_max_depth
+    - fewer_estimators
+    - lower_learning_rate
+promotion_policy:
+  minimum_macro_f1_gain: 0.01
+  fallback_requires_balanced_accuracy_and_meningioma_f1_improvement: true
+final_retraining_policy: train_plus_validation_if_promoted
+feature_implementation_commit: fd7b515
+baseline_feature_implementation_commit: ad1415b3
+feature_version: v2
+split_version: phase1_patient_split_v1
+split_seed: 42
+importance_type: estimator.feature_importances_
+

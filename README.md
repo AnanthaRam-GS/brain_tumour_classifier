@@ -155,6 +155,53 @@ PNG/mask/audit derivatives. Generated feature CSVs are ignored by default and
 may be exchanged later if combined-feature or cross-model experiments need
 them.
 
+## Review 1 Single-Image Demo
+
+The live demo is inference-only. It demonstrates the mentor-required flow:
+choose an unseen TEST MRI, load the canonical NPZ sample, prepare the shared
+tumor ROI, extract the pipeline's frozen feature vector, load the finalized
+local model artifact, and display the predicted tumor class.
+
+List available pipelines and local artifact readiness:
+
+```bash
+python -m src.demo.run_review_demo --list-pipelines
+```
+
+Run a deterministic random TEST sample:
+
+```bash
+python -m src.demo.run_review_demo --pipeline glcm_xgboost --seed 42
+```
+
+Run an explicit held-out TEST sample:
+
+```bash
+python -m src.demo.run_review_demo --pipeline gabor_svm --sample-id 2763
+python -m src.demo.run_review_demo --pipeline wavelet_rf --sample-id 2763
+python -m src.demo.run_review_demo --pipeline lbp_logistic_regression --sample-id 2763
+```
+
+Demo outputs are written under `reports/demo/<pipeline_id>/` and are ignored
+by Git. Each run saves a presentation PNG and a JSON metadata file containing
+the sample ID, patient ID, true class, predicted class, confidence when
+available, and correctness.
+
+Each teammate runs the demo on their own machine with their own finalized
+model artifact under the expected local `models/` path. If a pipeline reports
+`MODEL ARTIFACT NOT FOUND`, run or update that pipeline's training/export code
+so the fitted preprocessor, fitted model, feature-column order, and class
+mapping are serialized locally. The demo must never retrain models, alter
+hyperparameters, regenerate features, or create a new split.
+
+Currently registered demo pipelines:
+
+- `glcm_xgboost`: GLCM + XGBoost
+- `gabor_svm`: Gabor + SVM
+- `wavelet_rf`: Wavelet + Random Forest
+- `lbp_logistic_regression`: LBP + Logistic Regression
+- `hog_knn`: reserved for HOG + KNN when that implementation is completed
+
 ## Dataset
 
 The raw dataset is stored locally at `1512427/`. Its four numbered
