@@ -1,18 +1,6 @@
-"""Gabor filter-bank feature extraction for Phase 1 tumor ROIs.
-
-Fully driven by the frozen ``configs/features/gabor.yaml`` specification via
-``src.features.config``. No orientation, frequency, or statistic here may
-drift from that file; if the frozen config changes, this module picks up
-the change automatically instead of needing an edit.
-"""
-
-from __future__ import annotations
-
 import argparse
 import json
-import subprocess
 from pathlib import Path
-from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -29,24 +17,15 @@ from src.features.feature_table import (
 from src.preprocessing.roi import prepare_tumor_roi
 
 METADATA_COLUMNS = ("sample_id", "patient_id", "label", "split")
-RESPONSE_STATISTICS = (
-    "real_mean",
-    "real_std",
-    "magnitude_mean",
-    "magnitude_std",
-    "magnitude_energy",
-)
 
 
-def _feature_name(prefix: str, frequency: float, orientation_deg: float, stat: str) -> str:
+def _feature_name(prefix, frequency, orientation_deg, stat):
     freq_code = f"f{round(frequency * 100):03d}"
     orientation_code = f"o{int(round(orientation_deg)):03d}"
     return f"{prefix}_{freq_code}_{orientation_code}_{stat}"
 
 
-def gabor_kernel_bank(parameters: dict[str, Any]) -> list[tuple[float, float, float]]:
-    """Deterministic (frequency, orientation_deg, theta_rad) bank from frozen parameters."""
-
+def gabor_kernel_bank(parameters):
     bank = []
     for frequency in parameters["frequencies"]:
         for orientation_deg in parameters["orientations_degrees"]:
@@ -55,15 +34,8 @@ def gabor_kernel_bank(parameters: dict[str, Any]) -> list[tuple[float, float, fl
     return bank
 
 
-def extract_gabor_features(image: np.ndarray, config: dict[str, Any]) -> dict[str, float]:
-    """Compute the frozen-spec Gabor response statistics for one ROI image."""
-
+def extract_gabor_features(image, config):
     image_array = np.asarray(image, dtype=np.float64)
-    if image_array.ndim != 2:
-        raise ValueError(f"image must be 2D, got shape {image_array.shape}")
-    if not np.isfinite(image_array).all():
-        raise ValueError("image contains NaN or infinite values")
-
     parameters = config["parameters"]
     prefix = config["feature_prefix"]
     stat_order = parameters["response_statistics"]
@@ -72,7 +44,7 @@ def extract_gabor_features(image: np.ndarray, config: dict[str, Any]) -> dict[st
     n_stds = parameters["n_stds"]
     offset = parameters["offset"]
 
-    features: dict[str, float] = {}
+    features = {}
     for frequency, orientation_deg, theta_rad in gabor_kernel_bank(parameters):
         real, imag = gabor(
             image_array,
@@ -102,17 +74,7 @@ def extract_gabor_features(image: np.ndarray, config: dict[str, Any]) -> dict[st
     return features
 
 
-def _git_commit() -> str:
-    try:
-        repo_root = Path(__file__).resolve().parents[2]
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
-        ).strip()
-    except Exception:
-        return "unknown"
-
-
-def _split_version(split_metadata_json: Path | str) -> str:
+def _split_version(split_metadata_json):
     path = Path(split_metadata_json)
     if not path.is_file():
         return "unknown"
@@ -122,27 +84,25 @@ def _split_version(split_metadata_json: Path | str) -> str:
 
 
 def build_gabor_feature_table(
-    split: str = "all",
+    split="all",
     *,
-    split_csv: Path | str = "data/splits/patient_split.csv",
-    samples_dir: Path | str = "data/processed/samples",
-    sample_ids: Iterable[str | int] | None = None,
-    config: dict[str, Any] | None = None,
-) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """Extract Gabor features for the requested samples via the shared Phase 1 loaders."""
-
-    config = config if config is not None else load_feature_config("gabor")
+    split_csv="data/splits/patient_split.csv",
+    samples_dir="data/processed/samples",
+    sample_ids=None,
+    config=None,
+):
+    config = config or load_feature_config("gabor")
     requested_ids = None if sample_ids is None else {str(int(value)) for value in sample_ids}
-    records: list[dict[str, Any]] = []
-    roi_padding_fraction: float | None = None
-    roi_standard_size: tuple[int, int] | None = None
+    records = []
+    padding_fraction = None
+    standard_size = None
 
     for sample in iter_phase1_samples(split, split_csv=split_csv, samples_dir=samples_dir):
         if requested_ids is not None and sample.sample_id not in requested_ids:
             continue
         roi = prepare_tumor_roi(sample)
-        roi_padding_fraction = roi.padding_fraction
-        roi_standard_size = roi.standard_size
+        padding_fraction = roi.padding_fraction
+        standard_size = roi.standard_size
         features = extract_gabor_features(roi.roi_image_masked_resized, config)
         records.append(
             {
@@ -159,24 +119,22 @@ def build_gabor_feature_table(
 
     frame = build_feature_dataframe(records)
     roi_info = {
-        "padding_fraction": roi_padding_fraction,
-        "standard_size": list(roi_standard_size) if roi_standard_size is not None else None,
+        "padding_fraction": padding_fraction,
+        "standard_size": list(standard_size) if standard_size is not None else None,
     }
     return frame, roi_info
 
 
 def extract_and_write_gabor_features(
-    split: str = "all",
+    split="all",
     *,
-    split_csv: Path | str = "data/splits/patient_split.csv",
-    samples_dir: Path | str = "data/processed/samples",
-    sample_ids: Iterable[str | int] | None = None,
-    output_csv: Path | str = "data/features/gabor/gabor_features.csv",
-    metadata_json: Path | str = "data/features/gabor/gabor_metadata.json",
-    split_metadata_json: Path | str = "data/splits/split_metadata.json",
-) -> dict[str, Any]:
-    """Extract Gabor features per the frozen config and write the validated outputs."""
-
+    split_csv="data/splits/patient_split.csv",
+    samples_dir="data/processed/samples",
+    sample_ids=None,
+    output_csv="data/features/gabor/gabor_features.csv",
+    metadata_json="data/features/gabor/gabor_metadata.json",
+    split_metadata_json="data/splits/split_metadata.json",
+):
     config = load_feature_config("gabor")
     sample_ids_list = None if sample_ids is None else list(sample_ids)
     run_scope = (
@@ -192,9 +150,7 @@ def extract_and_write_gabor_features(
         config=config,
     )
     validated = write_feature_table(frame, output_csv, canonical_split=split_csv)
-    feature_columns = [
-        column for column in validated.columns if column not in METADATA_COLUMNS
-    ]
+    feature_columns = [column for column in validated.columns if column not in METADATA_COLUMNS]
     validation_summary = {
         "sample_count": int(len(validated)),
         "feature_count": len(feature_columns),
@@ -211,33 +167,29 @@ def extract_and_write_gabor_features(
     metadata = build_feature_metadata(
         feature_set_name=config["feature_set_name"],
         feature_version=config["feature_version"],
-        algorithm=f"{config['algorithm']} (skimage.filters.gabor, per frozen configs/features/gabor.yaml)",
+        algorithm=config["algorithm"],
         parameters={
             **config["parameters"],
             "status": f"compliant with frozen configs/features/gabor.yaml (feature_version {config['feature_version']})",
             "run_scope": run_scope,
         },
-        input_representation=(
-            f"{config['input_representation']} (TumorROI.roi_image_masked_resized, "
-            f"tumor-masked, [0,1]-normalized, {standard_size} pixels)"
-        ),
+        input_representation=config["input_representation"],
         roi_policy=(
-            f"{config['roi_policy']} (prepare_tumor_roi() actual: "
-            f"padding_fraction={roi_info['padding_fraction']}, standard_size={standard_size}, "
-            "zero-padding for out-of-bounds)"
+            f"{config['roi_policy']} (actual padding_fraction={roi_info['padding_fraction']}, "
+            f"standard_size={standard_size})"
         ),
         source_split_version=_split_version(split_metadata_json),
         sample_count=int(len(validated)),
         feature_columns=feature_columns,
-        code_commit=_git_commit(),
+        code_commit="unknown",
         validation_summary=validation_summary,
     )
     write_feature_metadata(metadata, metadata_json)
     return {"table": validated, "metadata": metadata}
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+def main():
+    parser = argparse.ArgumentParser()
     parser.add_argument("--split", default="all", choices=["train", "val", "test", "all"])
     parser.add_argument("--split-csv", type=Path, default=Path("data/splits/patient_split.csv"))
     parser.add_argument("--samples-dir", type=Path, default=Path("data/processed/samples"))
