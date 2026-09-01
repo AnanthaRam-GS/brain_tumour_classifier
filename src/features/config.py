@@ -11,6 +11,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FEATURE_CONFIG_DIR = PROJECT_ROOT / "configs" / "features"
 
 FEATURE_CONFIG_NAMES = ("glcm", "lbp", "wavelet", "hog", "gabor")
+EXPERIMENTAL_FEATURE_CONFIG_NAMES = ("glcm_v2",)
+SUPPORTED_FEATURE_CONFIG_NAMES = FEATURE_CONFIG_NAMES + EXPERIMENTAL_FEATURE_CONFIG_NAMES
 REQUIRED_FIELDS = {
     "feature_set_name",
     "feature_version",
@@ -23,6 +25,7 @@ REQUIRED_FIELDS = {
 }
 SUPPORTED_ALGORITHMS = {
     "glcm": "gray_level_cooccurrence_matrix",
+    "glcm_v2": "gray_level_cooccurrence_matrix",
     "lbp": "local_binary_pattern",
     "wavelet": "2d_discrete_wavelet_transform",
     "hog": "histogram_of_oriented_gradients",
@@ -30,6 +33,7 @@ SUPPORTED_ALGORITHMS = {
 }
 EXPECTED_REPRESENTATIONS = {
     "glcm": "native_roi_image_and_mask",
+    "glcm_v2": "native_roi_image_and_mask",
     "lbp": "native_roi_image_and_mask",
     "wavelet": "roi_image_masked_resized",
     "hog": "roi_image_masked_resized",
@@ -50,7 +54,7 @@ def get_feature_config_path(feature_set_name: str) -> Path:
     """Return the repository-relative path for a supported feature config."""
 
     name = str(feature_set_name).strip().lower()
-    if name not in FEATURE_CONFIG_NAMES:
+    if name not in SUPPORTED_FEATURE_CONFIG_NAMES:
         raise FeatureConfigError(f"unsupported feature_set_name: {feature_set_name}")
     return FEATURE_CONFIG_DIR / f"{name}.yaml"
 
@@ -78,7 +82,7 @@ def validate_feature_config(config: dict[str, Any]) -> dict[str, Any]:
     if missing:
         raise FeatureConfigError(f"feature config missing field(s): {', '.join(missing)}")
     name = _nonblank(config["feature_set_name"], "feature_set_name")
-    if name not in FEATURE_CONFIG_NAMES:
+    if name not in SUPPORTED_FEATURE_CONFIG_NAMES:
         raise FeatureConfigError(f"unsupported feature_set_name: {name}")
     if config["algorithm"] != SUPPORTED_ALGORITHMS[name]:
         raise FeatureConfigError(f"unsupported algorithm for {name}: {config['algorithm']}")
@@ -95,6 +99,7 @@ def validate_feature_config(config: dict[str, Any]) -> dict[str, Any]:
 
     validators = {
         "glcm": _validate_glcm,
+        "glcm_v2": _validate_glcm_v2,
         "lbp": _validate_lbp,
         "wavelet": _validate_wavelet,
         "hog": _validate_hog,
@@ -201,6 +206,41 @@ def _validate_glcm(parameters: dict[str, Any]) -> int:
     ):
         raise FeatureConfigError("GLCM mask_policy must require both pixels inside tumor_mask")
     return len(properties) * len(aggregation)
+
+
+def _validate_glcm_v2(parameters: dict[str, Any]) -> int:
+    properties, aggregation = _validate_glcm_common(parameters)
+    distances = _positive_int_list(parameters.get("distances"), "distances")
+    angles = _angle_list(parameters.get("angles_degrees"), "angles_degrees")
+    if parameters.get("directional_features") is not True:
+        raise FeatureConfigError("GLCM v2 must enable directional_features")
+    return len(properties) * len(distances) * len(angles) + len(properties) * len(aggregation)
+
+
+def _validate_glcm_common(parameters: dict[str, Any]) -> tuple[list[str], list[str]]:
+    gray_levels = _positive_int(parameters.get("gray_levels"), "gray_levels")
+    if gray_levels <= 1:
+        raise FeatureConfigError("gray_levels must be greater than 1")
+    _positive_int_list(parameters.get("distances"), "distances")
+    _angle_list(parameters.get("angles_degrees"), "angles_degrees")
+    properties = _require_subset(parameters.get("properties"), GLCM_PROPERTIES, "properties")
+    aggregation = _require_subset(parameters.get("aggregation"), AGGREGATIONS, "aggregation")
+    quantization = parameters.get("quantization")
+    if not isinstance(quantization, dict):
+        raise FeatureConfigError("quantization must be a mapping")
+    if quantization.get("method") != "uniform":
+        raise FeatureConfigError("GLCM quantization method must be uniform")
+    if quantization.get("levels") != gray_levels:
+        raise FeatureConfigError("GLCM quantization levels must match gray_levels")
+    source_range = quantization.get("source_range")
+    if source_range != [0.0, 1.0]:
+        raise FeatureConfigError("GLCM quantization source_range must be [0.0, 1.0]")
+    mask_policy = parameters.get("mask_policy")
+    if not isinstance(mask_policy, list) or not any(
+        "BOTH pixels" in str(item) and "tumor_mask" in str(item) for item in mask_policy
+    ):
+        raise FeatureConfigError("GLCM mask_policy must require both pixels inside tumor_mask")
+    return properties, aggregation
 
 
 def _validate_lbp(parameters: dict[str, Any]) -> int:
