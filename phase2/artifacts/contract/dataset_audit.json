@@ -1,0 +1,155 @@
+{
+  "code_commit": "353bcfc46c647309f98305be9ca8ab7474f400de",
+  "contract_version": "1.0.0",
+  "hard_checks": {
+    "background_exactly_zero": {
+      "n_checked": 3064,
+      "n_violations": 0,
+      "pass": true,
+      "violations": []
+    },
+    "labels_and_class_counts": {
+      "expected_class_counts": {
+        "1": 708,
+        "2": 1426,
+        "3": 930
+      },
+      "expected_n_samples": 3064,
+      "n_samples": 3064,
+      "observed_class_counts": {
+        "1": 708,
+        "2": 1426,
+        "3": 930
+      },
+      "pass": true
+    },
+    "masks_valid": {
+      "invalid": [],
+      "n_checked": 3064,
+      "n_invalid": 0,
+      "pass": true
+    },
+    "no_duplicate_images": {
+      "groups": [],
+      "n_duplicate_groups": 0,
+      "pass": true
+    },
+    "normalization_recompute_matches": {
+      "failures": [],
+      "max_abs_diff": 1.1920928955078125e-07,
+      "n_checked": 3064,
+      "pass": true,
+      "tolerance": 1e-05
+    },
+    "normalized_finite_and_in_range": {
+      "non_finite": [],
+      "out_of_range": [],
+      "pass": true
+    },
+    "patients_single_label": {
+      "expected_n_patients": 233,
+      "multi_label_patients": [],
+      "n_unique_patients": 233,
+      "pass": true
+    },
+    "raw_files_readable": {
+      "n_checked": 3064,
+      "n_unreadable": 0,
+      "pass": true,
+      "unreadable": []
+    },
+    "raw_npz_coverage": {
+      "missing_npz_for_raw": [],
+      "missing_raw_for_npz": [],
+      "npz_count": 3064,
+      "pass": true,
+      "raw_count": 3064
+    },
+    "raw_vs_npz_equal": {
+      "mismatches": [],
+      "n_checked": 3064,
+      "n_mismatches": 0,
+      "pass": true
+    }
+  },
+  "reported": {
+    "bbox_longest_side_distribution": {
+      "overall": {
+        "max": 335.0,
+        "median": 76.0,
+        "min": 16.0,
+        "p5": 34.0,
+        "p95": 154.0
+      },
+      "per_class": {
+        "1": {
+          "max": 190.0,
+          "median": 79.0,
+          "min": 21.0,
+          "p5": 35.0,
+          "p95": 135.0
+        },
+        "2": {
+          "max": 335.0,
+          "median": 94.0,
+          "min": 21.0,
+          "p5": 42.0,
+          "p95": 173.0
+        },
+        "3": {
+          "max": 159.0,
+          "median": 54.0,
+          "min": 16.0,
+          "p5": 30.0,
+          "p95": 94.0
+        }
+      }
+    },
+    "mask_area_distribution": {
+      "overall": {
+        "max": 25461.0,
+        "median": 3365.5,
+        "min": 163.0,
+        "p5": 691.3,
+        "p95": 11959.599999999999
+      },
+      "per_class": {
+        "1": {
+          "max": 15220.0,
+          "median": 3987.0,
+          "min": 255.0,
+          "p5": 839.15,
+          "p95": 11202.699999999997
+        },
+        "2": {
+          "max": 25461.0,
+          "median": 4812.5,
+          "min": 291.0,
+          "p5": 996.5,
+          "p95": 13794.75
+        },
+        "3": {
+          "max": 11684.0,
+          "median": 1731.0,
+          "min": 163.0,
+          "p5": 494.35,
+          "p95": 5194.699999999997
+        }
+      }
+    },
+    "raw_dtype": [
+      "int16"
+    ],
+    "shape_distribution": {
+      "256x256": 15,
+      "512x512": 3049
+    },
+    "slices_per_patient_distribution": {
+      "max": 38.0,
+      "median": 13.0,
+      "min": 1.0,
+      "p5": 2.0,
+      "p95": 25.0
+    }
+  }
+}
