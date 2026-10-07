@@ -1,0 +1,19 @@
+{
+  "cache_name": "roi224_v1",
+  "cache_relpath": "phase2/cache/roi224_v1.npy",
+  "code_commit": "c265269b983b1d5b844e3553d8af89799654ab97",
+  "dtype": "float16",
+  "input_yaml_sha256": "c802097fb2301e378ee975ac2b4368fe9dc8cf51f9b502927b53510ec4c05e2b",
+  "manifest_relpath": "phase2/artifacts/contract/manifest.csv",
+  "manifest_sha256": "b511f8d325c845983dcceb4bbc4bb31edcdea9e84f2dee4c92c77f8f7ca91314",
+  "npy_sha256": "d9860739dc6fe5cec0c806d30e2630c4d3df24fe3f0d33c639ff4b3f88665735",
+  "numpy_version": "2.5.3",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "sample_order_sha256": "aa1a4be6a09354f4e21c417341640df7b10151ef89953f2ab46ce2187697de2a",
+  "shape": [
+    3064,
+    224,
+    224
+  ],
+  "torch_version": "2.14.1"
+}
