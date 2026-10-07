@@ -40,3 +40,9 @@ Desktop.ini
 
 # Raw dataset (immutable local source data)
 1512427/
+
+# Phase 2 (deep learning)
+phase2/.venv/
+phase2/runs/
+phase2/cache/
+*.egg-info/
