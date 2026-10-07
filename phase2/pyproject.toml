@@ -25,3 +25,6 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "data: requires the real NPZ dataset on disk; skipped automatically if absent",
+]

@@ -3,7 +3,7 @@ contract_version: "1.0.0"
 raw_dir: "1512427"
 samples_dir: "data/processed/samples"
 split_csv: "data/splits/patient_split.csv"
-split_sha256: ""  # filled in by Part D after verification
+split_sha256: "ab45f42e99b4dc10c56b928a3a3ab17d753fb4251a970c51633c37c4a17fe9c1"
 
 manifest: "phase2/artifacts/contract/manifest.csv"
 
