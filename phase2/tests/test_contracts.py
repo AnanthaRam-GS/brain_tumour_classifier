@@ -75,6 +75,30 @@ def test_label_to_index_rejects_numpy_non_integer():
         label_to_index(np.float64(1.0))
 
 
+def test_label_to_index_rejects_numpy_bool():
+    np = pytest.importorskip("numpy")
+    with pytest.raises(ValueError):
+        label_to_index(np.bool_(True))
+
+
+@pytest.mark.parametrize("np_int_type_name", ["int8", "int16", "int32", "int64"])
+def test_label_to_index_accepts_numpy_integer_scalars(np_int_type_name):
+    np = pytest.importorskip("numpy")
+    np_int_type = getattr(np, np_int_type_name)
+    index = label_to_index(np_int_type(2))
+    assert index == 1
+    assert type(index) is int
+
+
+@pytest.mark.parametrize("np_int_type_name", ["int8", "int16", "int32", "int64"])
+def test_index_to_label_accepts_numpy_integer_scalars(np_int_type_name):
+    np = pytest.importorskip("numpy")
+    np_int_type = getattr(np, np_int_type_name)
+    label = index_to_label(np_int_type(1))
+    assert label == 2
+    assert type(label) is int
+
+
 @pytest.mark.parametrize("bad_index", [-1, 3, 100])
 def test_index_to_label_rejects_out_of_range(bad_index):
     with pytest.raises(ValueError):
@@ -85,3 +109,15 @@ def test_index_to_label_rejects_out_of_range(bad_index):
 def test_index_to_label_rejects_wrong_type(bad_index):
     with pytest.raises(ValueError):
         index_to_label(bad_index)
+
+
+def test_index_to_label_rejects_numpy_non_integer():
+    np = pytest.importorskip("numpy")
+    with pytest.raises(ValueError):
+        index_to_label(np.float64(1.0))
+
+
+def test_index_to_label_rejects_numpy_bool():
+    np = pytest.importorskip("numpy")
+    with pytest.raises(ValueError):
+        index_to_label(np.bool_(True))

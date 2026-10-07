@@ -8,6 +8,8 @@ Any change here requires a CONTRACT_VERSION bump (see docs/DECISIONS.md).
 
 from types import MappingProxyType
 
+import numpy as np
+
 CONTRACT_VERSION = "1.0.0"
 
 PROJECT_LABELS = (1, 2, 3)
@@ -23,17 +25,32 @@ CLASS_ORDER_INDEX = (0, 1, 2)
 CLASS_NAMES_BY_INDEX = tuple(CLASS_NAMES[INDEX_TO_LABEL[index]] for index in CLASS_ORDER_INDEX)
 
 
+def _as_plain_int(value, name):
+    """Coerce a Python int or numpy integer scalar to a plain int.
+
+    Rejects bool/np.bool_, floats (including integral floats like 1.0),
+    strings, None, and any other non-integral type.
+    """
+
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError(f"{name} must be an integer, got bool: {value!r}")
+    if isinstance(value, (int, np.integer)):
+        return int(value)
+    raise ValueError(
+        f"{name} must be a Python int or numpy integer scalar, "
+        f"got {type(value).__name__}: {value!r}"
+    )
+
+
 def label_to_index(label):
-    if isinstance(label, bool) or not isinstance(label, int):
-        raise ValueError(f"label must be a plain int, got {type(label).__name__}: {label!r}")
+    label = _as_plain_int(label, "label")
     if label not in LABEL_TO_INDEX:
         raise ValueError(f"label must be one of {PROJECT_LABELS}, got {label!r}")
     return LABEL_TO_INDEX[label]
 
 
 def index_to_label(index):
-    if isinstance(index, bool) or not isinstance(index, int):
-        raise ValueError(f"index must be a plain int, got {type(index).__name__}: {index!r}")
+    index = _as_plain_int(index, "index")
     if index not in INDEX_TO_LABEL:
         raise ValueError(f"index must be one of {CLASS_ORDER_INDEX}, got {index!r}")
     return INDEX_TO_LABEL[index]
