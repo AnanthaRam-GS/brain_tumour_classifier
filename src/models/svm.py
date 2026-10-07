@@ -17,9 +17,9 @@ import subprocess
 from pathlib import Path
 from typing import Any, Sequence
 
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.svm import SVC
 
