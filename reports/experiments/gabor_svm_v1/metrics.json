@@ -89,12 +89,11 @@
   "preprocessing": {
     "imputation": "median",
     "scaling": "standard",
-    "hyperparameter_selection_metric": "validation macro F1",
-    "hyperparameter_selection_note": "C/gamma grid-searched by fitting on train and scoring on validation only; test was not used until final evaluation."
+    "hyperparameter_selection_metric": "validation macro F1"
   },
   "random_seed": 42,
   "split_version": "phase1_patient_split_v1",
   "feature_version": "v1",
-  "generated_at": "2026-08-31T16:22:16.526292+00:00",
-  "code_commit": "4e43952880e6ca55b7b0bd511d3d5385ea1c4cfb"
+  "generated_at": "2026-09-01T07:47:57.399354+00:00",
+  "code_commit": "unknown"
 }
