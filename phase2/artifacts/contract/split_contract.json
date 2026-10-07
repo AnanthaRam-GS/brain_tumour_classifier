@@ -1,0 +1,57 @@
+{
+  "counts": {
+    "class_counts_by_split": {
+      "test": {
+        "1": 117,
+        "2": 222,
+        "3": 159
+      },
+      "train": {
+        "1": 517,
+        "2": 985,
+        "3": 618
+      },
+      "val": {
+        "1": 74,
+        "2": 219,
+        "3": 153
+      }
+    },
+    "patient_counts_by_split": {
+      "test": 37,
+      "train": 162,
+      "val": 34
+    },
+    "sample_counts_by_split": {
+      "test": 498,
+      "train": 2120,
+      "val": 446
+    }
+  },
+  "pairwise_patient_overlaps": {
+    "train_test": 0,
+    "train_val": 0,
+    "val_test": 0
+  },
+  "phase1_equivalence": {
+    "matches_phase2": true,
+    "phase1_patient_counts_by_split": {
+      "test": 37,
+      "train": 162,
+      "val": 34
+    },
+    "phase1_sample_counts_by_split": {
+      "test": 498,
+      "train": 2120,
+      "val": 446
+    },
+    "phase1_seed": 42,
+    "phase1_split_version": "phase1_patient_split_v1",
+    "phase1_train_val_test_ratio": [
+      0.7,
+      0.15,
+      0.15
+    ]
+  },
+  "sha256": "ab45f42e99b4dc10c56b928a3a3ab17d753fb4251a970c51633c37c4a17fe9c1"
+}
