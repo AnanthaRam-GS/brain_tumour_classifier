@@ -43,11 +43,17 @@ def epoch_metrics(y_true_idx, probs) -> dict:
     y_true_idx, probs = _validate(y_true_idx, probs)
     y_pred_idx = np.argmax(probs, axis=1)
 
+    # Validated above to sum to 1 within 1e-5, but sklearn's log_loss applies
+    # a stricter internal check and warns on float32-precision row sums; a
+    # defensive renormalization (for this call only) avoids the noise
+    # without loosening the validation tolerance itself.
+    normalized_probs = probs / probs.sum(axis=1, keepdims=True)
+
     return {
         "accuracy": float(accuracy_score(y_true_idx, y_pred_idx)),
         "balanced_accuracy": float(balanced_accuracy_score(y_true_idx, y_pred_idx)),
         "macro_f1": float(
             f1_score(y_true_idx, y_pred_idx, labels=list(LABELS), average="macro", zero_division=0)
         ),
-        "log_loss": float(log_loss(y_true_idx, probs, labels=list(LABELS))),
+        "log_loss": float(log_loss(y_true_idx, normalized_probs, labels=list(LABELS))),
     }
