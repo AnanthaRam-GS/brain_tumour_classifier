@@ -8,12 +8,43 @@ elsewhere than the code.
 
 import hashlib
 import os
+from collections.abc import Mapping
 from pathlib import Path
-from types import MappingProxyType
 
 import yaml
 
 _PHASE2_DIR_NAME = "phase2"
+
+
+class FrozenDict(Mapping):
+    """Immutable, picklable mapping.
+
+    types.MappingProxyType is immutable but NOT picklable, which breaks
+    torch DataLoader worker processes (num_workers > 0) when a Dataset
+    stores a loaded contract as an instance attribute -- the Dataset object
+    has to be pickled to reach each worker. This is a plain dict under the
+    hood (picklable via __reduce__) with no mutation methods exposed.
+    """
+
+    __slots__ = ("_data",)
+
+    def __init__(self, data):
+        object.__setattr__(self, "_data", dict(data))
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __repr__(self):
+        return f"FrozenDict({self._data!r})"
+
+    def __reduce__(self):
+        return (FrozenDict, (self._data,))
 
 
 def repo_root() -> Path:
@@ -43,7 +74,7 @@ def resolve_data_path(rel) -> Path:
 
 def _freeze(value):
     if isinstance(value, dict):
-        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
+        return FrozenDict({key: _freeze(item) for key, item in value.items()})
     if isinstance(value, list):
         return tuple(_freeze(item) for item in value)
     return value
@@ -103,6 +134,25 @@ _SCHEMAS = {
         ("model_input.normalization", str),
         ("model_input.mean", list),
         ("model_input.std", list),
+    ],
+    "augmentation": [
+        ("contract_version", str),
+        ("applies_to", str),
+        ("order", list),
+        ("hflip", dict),
+        ("hflip.p", (int, float)),
+        ("affine", dict),
+        ("affine.degrees", (int, float)),
+        ("affine.translate", (int, float)),
+        ("affine.scale", list),
+        ("affine.shear", (int, float)),
+        ("affine.interpolation", str),
+        ("affine.fill", (int, float)),
+        ("brightness", dict),
+        ("brightness.factor_range", list),
+        ("contrast", dict),
+        ("contrast.factor_range", list),
+        ("clamp", list),
     ],
 }
 
