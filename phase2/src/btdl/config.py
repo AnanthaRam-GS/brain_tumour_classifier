@@ -74,6 +74,36 @@ _SCHEMAS = {
         ("expected.split_patients.val", int),
         ("expected.split_patients.test", int),
     ],
+    "input": [
+        ("contract_version", str),
+        ("source_field", str),
+        ("roi", dict),
+        ("roi.bbox", str),
+        ("roi.padding_fraction", (int, float)),
+        ("roi.padding_basis", str),
+        ("roi.padding_rounding", str),
+        ("roi.padding_per_side", bool),
+        ("roi.square", str),
+        ("roi.center_rounding", str),
+        ("roi.out_of_bounds", str),
+        ("roi.apply_mask", bool),
+        ("resize", dict),
+        ("resize.size", list),
+        ("resize.mode", str),
+        ("resize.antialias", bool),
+        ("resize.align_corners", bool),
+        ("resize.backend", str),
+        ("resize.clamp", list),
+        ("cache", dict),
+        ("cache.dtype", str),
+        ("cache.name", str),
+        ("model_input", dict),
+        ("model_input.channels", int),
+        ("model_input.channel_policy", str),
+        ("model_input.normalization", str),
+        ("model_input.mean", list),
+        ("model_input.std", list),
+    ],
 }
 
 
@@ -92,11 +122,13 @@ def _validate_schema(name, payload):
         raise ValueError(f"no schema registered for contract {name!r}")
     for key_path, expected_type in schema:
         value = _lookup(payload, key_path)
-        if expected_type is int and isinstance(value, bool):
-            raise ValueError(f"contract key {key_path!r} must be {expected_type.__name__}, got bool")
-        if not isinstance(value, expected_type):
+        allowed_types = expected_type if isinstance(expected_type, tuple) else (expected_type,)
+        type_names = "/".join(t.__name__ for t in allowed_types)
+        if bool not in allowed_types and int in allowed_types and isinstance(value, bool):
+            raise ValueError(f"contract key {key_path!r} must be {type_names}, got bool")
+        if not isinstance(value, allowed_types):
             raise ValueError(
-                f"contract key {key_path!r} must be {expected_type.__name__}, "
+                f"contract key {key_path!r} must be {type_names}, "
                 f"got {type(value).__name__}: {value!r}"
             )
 

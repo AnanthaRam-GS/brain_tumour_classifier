@@ -1,0 +1,32 @@
+contract_version: "1.0.0"
+source_field: image_normalized
+
+roi:
+  bbox: tight_mask_bbox_half_open
+  padding_fraction: 0.10
+  padding_basis: longest_tight_bbox_side
+  padding_rounding: ceil
+  padding_per_side: true
+  square: centered
+  center_rounding: floor_of_center_minus_half_side
+  out_of_bounds: zero_pad
+  apply_mask: false
+
+resize:
+  size: [224, 224]
+  mode: bilinear
+  antialias: true
+  align_corners: false
+  backend: torch_cpu_float32
+  clamp: [0.0, 1.0]
+
+cache:
+  dtype: float16
+  name: roi224_v1
+
+model_input:
+  channels: 3
+  channel_policy: replicate
+  normalization: imagenet
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
