@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "btdl"
+version = "0.1.0"
+description = "Phase 2 deep-learning package for the brain tumor MRI classifier."
+requires-python = "==3.12.*"
+dependencies = [
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+    "numpy==2.5.3",
+    "pandas==3.0.6",
+    "scikit-learn==1.9.1",
+    "scipy==1.18.1",
+    "h5py==3.16.0",
+    "PyYAML==6.0.3",
+    "matplotlib==3.11.2",
+    "pytest==9.1.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

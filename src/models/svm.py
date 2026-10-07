@@ -1,6 +1,21 @@
+"""Generic RBF-kernel SVM trainer for Phase 1 handcrafted feature tables.
+
+Feature-set agnostic: works with any single feature CSV, or several merged
+via ``src.features.feature_table.merge_feature_tables`` (e.g. Gabor + GLCM
+combined). Built only on the shared ``src.models.training`` and
+``src.evaluation.{metrics,results}`` contracts -- nothing feature-specific
+is hardcoded here, so any teammate's feature CSV can be dropped in as long
+as it follows the common ``sample_id,patient_id,label,split,<features>``
+schema.
+"""
+
+from __future__ import annotations
+
 import argparse
 import json
+import subprocess
 from pathlib import Path
+from typing import Any, Sequence
 
 import joblib
 from sklearn.metrics import accuracy_score, f1_score
@@ -26,11 +41,25 @@ DEFAULT_OUTPUT_ROOT = "reports/experiments"
 RANDOM_SEED = 42
 SELECTION_METRIC = "validation macro F1"
 
-C_GRID = (0.1, 1.0, 10.0, 100.0, 1000.0)
-GAMMA_GRID = ("scale", "auto", 0.001, 0.01, 0.1, 1.0)
+C_GRID: tuple[float, ...] = (0.1, 1.0, 10.0, 100.0, 1000.0)
+GAMMA_GRID: tuple[Any, ...] = ("scale", "auto", 0.001, 0.01, 0.1, 1.0)
 
 
-def read_json_field(path, field):
+def git_commit() -> str:
+    """Return the current commit hash, or "unknown" outside a git checkout."""
+
+    try:
+        repo_root = Path(__file__).resolve().parents[2]
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def read_json_field(path: Path | str, field: str) -> str:
+    """Read one string field from a small metadata JSON file, defaulting to "unknown"."""
+
     file_path = Path(path)
     if not file_path.is_file():
         return "unknown"
@@ -39,7 +68,13 @@ def read_json_field(path, field):
     return str(payload.get(field, "unknown"))
 
 
-def load_combined_feature_table(feature_csv, *, split_csv=DEFAULT_SPLIT_CSV):
+def load_combined_feature_table(
+    feature_csv: Path | str | Sequence[Path | str],
+    *,
+    split_csv: Path | str = DEFAULT_SPLIT_CSV,
+) -> pd.DataFrame:
+    """Load one feature CSV, or merge several by ``sample_id`` via the shared contract."""
+
     paths = [feature_csv] if isinstance(feature_csv, (str, Path)) else list(feature_csv)
     if not paths:
         raise ValueError("feature_csv must contain at least one path")
@@ -50,10 +85,19 @@ def load_combined_feature_table(feature_csv, *, split_csv=DEFAULT_SPLIT_CSV):
 
 
 def tune_svm_hyperparameters(
-    X_train, y_train, X_val, y_val, *, c_grid=C_GRID, gamma_grid=GAMMA_GRID, seed=RANDOM_SEED
-):
-    trials = []
-    best = None
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray,
+    y_val: np.ndarray,
+    *,
+    c_grid: tuple[float, ...] = C_GRID,
+    gamma_grid: tuple[Any, ...] = GAMMA_GRID,
+    seed: int = RANDOM_SEED,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Grid-search C/gamma, selecting by validation macro F1. Test is never used."""
+
+    trials: list[dict[str, Any]] = []
+    best: dict[str, Any] | None = None
     for C in c_grid:
         for gamma in gamma_grid:
             model = SVC(kernel="rbf", C=C, gamma=gamma, random_state=seed)
@@ -75,19 +119,31 @@ def tune_svm_hyperparameters(
 
 
 def run_svm_experiment(
-    feature_csv,
+    feature_csv: Path | str | Sequence[Path | str],
     *,
-    feature_set_name,
-    feature_version,
-    experiment_name,
-    split_csv=DEFAULT_SPLIT_CSV,
-    split_metadata_json=DEFAULT_SPLIT_METADATA_JSON,
-    split_version=None,
-    output_root=DEFAULT_OUTPUT_ROOT,
-    seed=RANDOM_SEED,
-    c_grid=C_GRID,
-    gamma_grid=GAMMA_GRID,
-):
+    feature_set_name: str,
+    feature_version: str,
+    experiment_name: str,
+    split_csv: Path | str = DEFAULT_SPLIT_CSV,
+    split_metadata_json: Path | str = DEFAULT_SPLIT_METADATA_JSON,
+    split_version: str | None = None,
+    output_root: Path | str = DEFAULT_OUTPUT_ROOT,
+    seed: int = RANDOM_SEED,
+    c_grid: tuple[float, ...] = C_GRID,
+    gamma_grid: tuple[Any, ...] = GAMMA_GRID,
+) -> dict[str, Any]:
+    """Fit preprocessing/SVM on train, tune C/gamma on val, evaluate once on test.
+
+    ``feature_csv`` may be a single path or a sequence of paths; multiple
+    feature tables are merged by ``sample_id`` through the shared
+    feature-table contract (e.g. Gabor + GLCM combined). ``feature_set_name``
+    and ``feature_version`` are caller-supplied labels recorded in the
+    result metadata -- callers combining several feature families should
+    pass a composite label (e.g. ``"gabor+glcm"``, ``"gabor_v1+glcm_v1"``)
+    since no single value can be inferred automatically once tables are
+    merged.
+    """
+
     table = load_combined_feature_table(feature_csv, split_csv=split_csv)
     matrices = prepare_feature_matrices(table, canonical_split=str(split_csv))
     preprocessed = transform_feature_matrices(matrices, imputation="median", scaling="standard")
@@ -137,10 +193,15 @@ def run_svm_experiment(
             "imputation": preprocessed.preprocessor.imputation,
             "scaling": preprocessed.preprocessor.scaling,
             "hyperparameter_selection_metric": SELECTION_METRIC,
+            "hyperparameter_selection_note": (
+                "C/gamma grid-searched by fitting on train and scoring on "
+                "validation only; test was not used until final evaluation."
+            ),
         },
         random_seed=seed,
         split_version=split_version or read_json_field(split_metadata_json, "split_version"),
         feature_version=feature_version,
+        code_commit=git_commit(),
         y_score=y_test_score if y_test_score is not None else None,
     )
 
@@ -173,8 +234,8 @@ def run_svm_experiment(
     return {"result": result, "written": written, "best_params": best_params, "trials": trials}
 
 
-def main():
-    parser = argparse.ArgumentParser()
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--feature-csv", nargs="+", required=True, type=Path,
         help="One feature CSV, or several to merge by sample_id.",
