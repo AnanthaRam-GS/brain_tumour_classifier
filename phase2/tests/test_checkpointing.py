@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import pytest
 
+from btdl import config
 from btdl.training.checkpointing import (
     CheckpointError,
     build_run_metadata,
@@ -19,13 +20,16 @@ def _toy_model():
     return nn.Linear(10, 3)
 
 
-def _toy_metadata(model, tmp_contract_hash=None):
+def _toy_metadata(model, tmp_contract_hash=None, effective_cfg=None):
     device = select_device("cpu")
     settings = seed_everything(42)
+    if effective_cfg is None:
+        effective_cfg = config.load_contract("training")
     metadata = build_run_metadata(
         model=model,
         model_name="toy",
         model_version="v1",
+        effective_cfg=effective_cfg,
         lr=1e-3,
         seed=42,
         best_epoch=0,
@@ -165,6 +169,9 @@ def test_build_run_metadata_contains_required_fields():
         "trainable_parameters",
         "contract_version",
         "contract_dir_sha256",
+        "effective_cfg",
+        "contract_conformant",
+        "contract_deviations",
         "manifest_sha256",
         "split_sha256",
         "roi_cache_npy_sha256",
@@ -188,3 +195,51 @@ def test_build_run_metadata_contains_required_fields():
     }
     assert required.issubset(metadata.keys())
     assert metadata["total_parameters"] == sum(p.numel() for p in model.parameters())
+
+
+def test_metadata_conformant_when_effective_cfg_matches_contract():
+    model = _toy_model()
+    metadata = _toy_metadata(model)  # default: effective_cfg = the real committed contract
+    assert metadata["contract_conformant"] is True
+    assert metadata["contract_deviations"] == []
+
+
+def test_metadata_non_conformant_when_effective_cfg_deviates():
+    model = _toy_model()
+    contract_cfg = config.load_contract("training")
+    deviating_cfg = {
+        "batch_size": 999,  # deviates from the committed contract
+        "max_epochs": contract_cfg["max_epochs"],
+        "optimizer": dict(contract_cfg["optimizer"]),
+        "scheduler": dict(contract_cfg["scheduler"]),
+        "early_stopping": dict(contract_cfg["early_stopping"]),
+    }
+    metadata = _toy_metadata(model, effective_cfg=deviating_cfg)
+    assert metadata["contract_conformant"] is False
+    deviation_keys = {d["key"] for d in metadata["contract_deviations"]}
+    assert "batch_size" in deviation_keys
+    batch_size_deviation = next(d for d in metadata["contract_deviations"] if d["key"] == "batch_size")
+    assert batch_size_deviation["contract_value"] == contract_cfg["batch_size"]
+    assert batch_size_deviation["effective_value"] == 999
+
+
+def test_metadata_records_effective_cfg_not_contract_values():
+    model = _toy_model()
+    contract_cfg = config.load_contract("training")
+    deviating_cfg = {
+        "batch_size": 4,
+        "max_epochs": contract_cfg["max_epochs"],
+        "optimizer": {
+            "weight_decay": 0.5,  # deviates from contract's weight_decay
+            "betas": list(contract_cfg["optimizer"]["betas"]),
+            "eps": contract_cfg["optimizer"]["eps"],
+        },
+        "scheduler": dict(contract_cfg["scheduler"]),
+        "early_stopping": dict(contract_cfg["early_stopping"]),
+    }
+    metadata = _toy_metadata(model, effective_cfg=deviating_cfg)
+    # weight_decay/batch_size in metadata reflect what was ACTUALLY used, never
+    # silently substituted with the committed contract's values.
+    assert metadata["batch_size"] == 4
+    assert metadata["weight_decay"] == 0.5
+    assert metadata["effective_cfg"]["batch_size"] == 4

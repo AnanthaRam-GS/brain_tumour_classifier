@@ -11,14 +11,18 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 
+from btdl import config
 from btdl.contracts import CLASS_NAMES_BY_INDEX, index_to_label
 from btdl.evaluation.metrics import epoch_metrics
+from btdl.evaluation.predict import predict
 from btdl.training.checkpointing import (
     build_run_metadata,
     load_checkpoint,
+    normalize_cfg,
     save_best_checkpoint,
     save_last_checkpoint,
 )
@@ -77,6 +81,50 @@ def _resolve_t_max(scheduler_cfg, max_epochs: int) -> int:
     if t_max == "max_epochs":
         return max_epochs
     return int(t_max)
+
+
+def _weighted_ce_from_probs(y_true_idx, probs, class_weights_np) -> float:
+    """nn.CrossEntropyLoss(weight=w, reduction="mean") computed from already-
+    softmaxed probabilities instead of raw logits, over the WHOLE set in one
+    shot (not batch-accumulated-then-averaged, which is only equivalent to
+    this for uniform weights) -- matches CrossEntropyLoss's own reduction:
+    sum(weighted NLL) / sum(per-sample class weight)."""
+
+    sample_weights = class_weights_np[y_true_idx]
+    true_class_probs = probs[np.arange(len(y_true_idx)), y_true_idx]
+    log_probs = np.log(np.clip(true_class_probs, 1e-12, 1.0))
+    weighted_nll = -log_probs * sample_weights
+    return float(weighted_nll.sum() / sample_weights.sum())
+
+
+def _check_resume_consistency(metadata, cfg, lr, seed):
+    mismatches = []
+
+    current_contract_hash = config.contract_dir_sha256()
+    checkpoint_contract_hash = metadata.get("contract_dir_sha256")
+    if checkpoint_contract_hash != current_contract_hash:
+        mismatches.append(
+            f"contract_dir_sha256: checkpoint={checkpoint_contract_hash!r} current={current_contract_hash!r}"
+        )
+
+    checkpoint_lr = metadata.get("lr")
+    if checkpoint_lr != lr:
+        mismatches.append(f"lr: checkpoint={checkpoint_lr!r} current={lr!r}")
+
+    checkpoint_seed = metadata.get("seed")
+    if checkpoint_seed != seed:
+        mismatches.append(f"seed: checkpoint={checkpoint_seed!r} current={seed!r}")
+
+    checkpoint_cfg = metadata.get("effective_cfg")
+    current_cfg = normalize_cfg(cfg)
+    if checkpoint_cfg != current_cfg:
+        mismatches.append(f"effective_cfg differs: checkpoint={checkpoint_cfg!r} current={current_cfg!r}")
+
+    if mismatches:
+        raise TrainerError(
+            "resume refused: the resuming call's (cfg, lr, seed) or the current contract "
+            "differ from the checkpoint's -- " + "; ".join(mismatches)
+        )
 
 
 def _write_history_csv(path, history):
@@ -182,7 +230,11 @@ def fit(
     start_epoch = 0
 
     if resume:
-        payload = load_checkpoint(run_dir / "last.pt", model, device=device)
+        # strict_contract=False here: the unified check below (contract hash,
+        # lr, seed, effective_cfg together) gives one clear combined error
+        # instead of load_checkpoint's contract-only check firing first.
+        payload = load_checkpoint(run_dir / "last.pt", model, device=device, strict_contract=False)
+        _check_resume_consistency(payload["metadata"], cfg, lr, seed)
         optimizer.load_state_dict(payload["optimizer_state_dict"])
         scheduler.load_state_dict(payload["scheduler_state_dict"])
         early_stopping.load_state_dict(payload["early_stopping_state"])
@@ -238,37 +290,17 @@ def fit(
             torch.cat(train_targets_parts).numpy(), torch.cat(train_probs_parts).numpy()
         )
 
-        model.eval()
-        val_loss_sum = 0.0
-        val_n = 0
-        val_targets_parts = []
-        val_probs_parts = []
-        val_sample_ids = []
-        val_patient_ids = []
-        val_true_labels = []
+        val_predictions = predict(model, val_loader, device)
+        class_weights_np = class_weights_t.detach().cpu().numpy()
+        val_loss = _weighted_ce_from_probs(
+            val_predictions.y_true_idx, val_predictions.probs, class_weights_np
+        )
+        val_metrics = epoch_metrics(val_predictions.y_true_idx, val_predictions.probs)
 
-        with torch.no_grad():
-            for batch in val_loader:
-                images = batch["image"].to(device)
-                targets = batch["target"].to(device)
-                batch_size = images.shape[0]
-
-                output = model(images)
-                _check_output_shape(output, batch_size)
-                loss = criterion(output, targets)
-
-                val_loss_sum += loss.item() * batch_size
-                val_n += batch_size
-                val_probs_parts.append(torch.softmax(output, dim=1).detach().cpu())
-                val_targets_parts.append(targets.detach().cpu())
-                val_sample_ids.extend(batch["sample_id"])
-                val_patient_ids.extend(batch["patient_id"])
-                labels_batch = batch["label"]
-                val_true_labels.extend(labels_batch.tolist() if torch.is_tensor(labels_batch) else list(labels_batch))
-
-        val_loss = val_loss_sum / val_n
-        val_probs_cat = torch.cat(val_probs_parts).numpy()
-        val_metrics = epoch_metrics(torch.cat(val_targets_parts).numpy(), val_probs_cat)
+        val_sample_ids = list(val_predictions.sample_ids)
+        val_patient_ids = list(val_predictions.patient_ids)
+        val_true_labels = [index_to_label(int(idx)) for idx in val_predictions.y_true_idx]
+        val_probs_cat = val_predictions.probs
 
         step_result = early_stopping.step(val_metrics["macro_f1"], val_loss, epoch)
         epoch_seconds = time.perf_counter() - epoch_start
@@ -293,6 +325,7 @@ def fit(
             model=model,
             model_name=model_name,
             model_version=model_version,
+            effective_cfg=cfg,
             lr=lr,
             seed=seed,
             best_epoch=early_stopping.best_epoch,

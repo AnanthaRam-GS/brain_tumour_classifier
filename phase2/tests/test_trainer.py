@@ -326,6 +326,136 @@ def test_injected_nan_loss_raises_with_epoch_and_batch_info(tmp_path):
     assert "batch" in message.lower()
 
 
+def _run_and_pause(tmp_path, *, lr=5e-2, seed=42, cfg=None):
+    torch.manual_seed(0)
+    model = ToyModel()
+    train_loader, train_sampler, val_loader = _build_loaders()
+    cfg = cfg or make_training_cfg(max_epochs=8)
+    fit(
+        model,
+        train_loader=train_loader,
+        train_sampler=train_sampler,
+        val_loader=val_loader,
+        class_weights=torch.ones(3),
+        cfg=cfg,
+        lr=lr,
+        seed=seed,
+        run_dir=tmp_path / "run",
+        device=DEVICE,
+        stop_after_epoch=1,
+    )
+
+
+def test_resume_refuses_mismatched_lr(tmp_path):
+    _run_and_pause(tmp_path, lr=5e-2)
+    model2 = ToyModel()
+    train_loader, train_sampler, val_loader = _build_loaders()
+    with pytest.raises(TrainerError, match="lr"):
+        fit(
+            model2,
+            train_loader=train_loader,
+            train_sampler=train_sampler,
+            val_loader=val_loader,
+            class_weights=torch.ones(3),
+            cfg=make_training_cfg(max_epochs=8),
+            lr=1e-2,  # different lr
+            seed=42,
+            run_dir=tmp_path / "run",
+            device=DEVICE,
+            resume=True,
+        )
+
+
+def test_resume_refuses_mismatched_seed(tmp_path):
+    _run_and_pause(tmp_path, seed=42)
+    model2 = ToyModel()
+    train_loader, train_sampler, val_loader = _build_loaders()
+    with pytest.raises(TrainerError, match="seed"):
+        fit(
+            model2,
+            train_loader=train_loader,
+            train_sampler=train_sampler,
+            val_loader=val_loader,
+            class_weights=torch.ones(3),
+            cfg=make_training_cfg(max_epochs=8),
+            lr=5e-2,
+            seed=43,  # different seed
+            run_dir=tmp_path / "run",
+            device=DEVICE,
+            resume=True,
+        )
+
+
+def test_resume_refuses_mismatched_effective_cfg(tmp_path):
+    _run_and_pause(tmp_path, cfg=make_training_cfg(max_epochs=8))
+    model2 = ToyModel()
+    train_loader, train_sampler, val_loader = _build_loaders()
+    different_cfg = make_training_cfg(max_epochs=8, batch_size=999)
+    with pytest.raises(TrainerError, match="effective_cfg"):
+        fit(
+            model2,
+            train_loader=train_loader,
+            train_sampler=train_sampler,
+            val_loader=val_loader,
+            class_weights=torch.ones(3),
+            cfg=different_cfg,
+            lr=5e-2,
+            seed=42,
+            run_dir=tmp_path / "run",
+            device=DEVICE,
+            resume=True,
+        )
+
+
+def test_resume_refuses_mismatched_contract_hash(tmp_path, monkeypatch):
+    _run_and_pause(tmp_path)
+    model2 = ToyModel()
+    train_loader, train_sampler, val_loader = _build_loaders()
+
+    import btdl.training.trainer as trainer_module
+
+    monkeypatch.setattr(trainer_module.config, "contract_dir_sha256", lambda: "deadbeef")
+    with pytest.raises(TrainerError, match="contract_dir_sha256"):
+        fit(
+            model2,
+            train_loader=train_loader,
+            train_sampler=train_sampler,
+            val_loader=val_loader,
+            class_weights=torch.ones(3),
+            cfg=make_training_cfg(max_epochs=8),
+            lr=5e-2,
+            seed=42,
+            run_dir=tmp_path / "run",
+            device=DEVICE,
+            resume=True,
+        )
+
+
+def test_resume_succeeds_when_everything_matches(tmp_path):
+    _run_and_pause(tmp_path)
+    model2 = ToyModel()
+    train_loader, train_sampler, val_loader = _build_loaders()
+    result = fit(
+        model2,
+        train_loader=train_loader,
+        train_sampler=train_sampler,
+        val_loader=val_loader,
+        class_weights=torch.ones(3),
+        cfg=make_training_cfg(max_epochs=8),
+        lr=5e-2,
+        seed=42,
+        run_dir=tmp_path / "run",
+        device=DEVICE,
+        resume=True,
+    )
+    # _run_and_pause stops after epoch 1 (epochs 0-1 = 2 epochs); this call
+    # resumes through epoch 7 (6 more epochs). Total history: 8 rows.
+    assert result.epochs_run == 6
+    history = pd.read_csv(result.history_path)
+    assert len(history) == 8
+    assert list(history["epoch"]) == list(range(8))
+
+
 def test_existing_run_dir_without_resume_raises(tmp_path):
     run_dir = tmp_path / "run"
     run_dir.mkdir()

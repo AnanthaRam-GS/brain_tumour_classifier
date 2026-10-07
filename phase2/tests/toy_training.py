@@ -66,6 +66,7 @@ class TupleOutputModel(nn.Module):
 
 
 DEFAULT_TRAINING_CFG = {
+    "batch_size": 8,
     "max_epochs": 8,
     "optimizer": {"weight_decay": 1.0e-4, "betas": [0.9, 0.999], "eps": 1.0e-8},
     "scheduler": {"t_max": "max_epochs", "eta_min": 0.0},
@@ -75,6 +76,7 @@ DEFAULT_TRAINING_CFG = {
 
 def make_training_cfg(**overrides):
     cfg = {
+        "batch_size": DEFAULT_TRAINING_CFG["batch_size"],
         "max_epochs": DEFAULT_TRAINING_CFG["max_epochs"],
         "optimizer": dict(DEFAULT_TRAINING_CFG["optimizer"]),
         "scheduler": dict(DEFAULT_TRAINING_CFG["scheduler"]),
