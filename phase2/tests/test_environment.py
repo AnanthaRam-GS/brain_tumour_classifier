@@ -1,4 +1,6 @@
+import os
 import sys
+from pathlib import Path
 
 
 def test_core_imports_succeed():
@@ -73,4 +75,24 @@ def test_btdl_resolves_under_phase2_and_never_imports_src():
 
     package_path = str(btdl.__file__).replace("\\", "/")
     assert "phase2/src/btdl" in package_path
-    assert "src" not in sys.modules
+
+
+def test_importing_btdl_fresh_never_imports_src():
+    """Isolated in a subprocess: other test modules (e.g. test_phase1_parity.py)
+
+    deliberately import Phase 1's `src` package into THIS session's
+    sys.modules, so checking the live sys.modules here would be order-
+    dependent. A fresh interpreter that imports only btdl is the only way
+    to check btdl's own import graph never pulls in `src`.
+    """
+
+    import subprocess
+
+    btdl_src_dir = str(Path(__file__).resolve().parent.parent / "src")
+    result = subprocess.run(
+        [sys.executable, "-c", "import btdl; import sys; assert 'src' not in sys.modules"],
+        env={**os.environ, "PYTHONPATH": btdl_src_dir},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
