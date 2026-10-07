@@ -186,6 +186,15 @@ backend), so the reproducibility test is scoped to what MPS can actually
 guarantee, instead of asserting something that would flake on this team's
 development hardware.
 
+**Implementation note (train-time augmentation):** augmentation randomness
+(`src/btdl/preprocessing/augmentation.py`) is keyed by a stable sha256-based
+hash of `(seed, epoch, sample_id)`, seeding a local `torch.Generator` per
+call -- never Python's `hash()` (not stable across processes) and never the
+global torch/numpy/python RNG. This makes a given sample's augmentation for
+a given epoch identical regardless of `num_workers`, batch order, or
+device. This clarifies D16 and does not change any decision; no
+`CONTRACT_VERSION` bump.
+
 ## D17 — Test-set discipline during development
 
 **Decision:** The smoke-test experiment exercises the test-evaluation code

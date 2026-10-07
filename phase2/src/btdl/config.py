@@ -104,6 +104,25 @@ _SCHEMAS = {
         ("model_input.mean", list),
         ("model_input.std", list),
     ],
+    "augmentation": [
+        ("contract_version", str),
+        ("applies_to", str),
+        ("order", list),
+        ("hflip", dict),
+        ("hflip.p", (int, float)),
+        ("affine", dict),
+        ("affine.degrees", (int, float)),
+        ("affine.translate", (int, float)),
+        ("affine.scale", list),
+        ("affine.shear", (int, float)),
+        ("affine.interpolation", str),
+        ("affine.fill", (int, float)),
+        ("brightness", dict),
+        ("brightness.factor_range", list),
+        ("contrast", dict),
+        ("contrast.factor_range", list),
+        ("clamp", list),
+    ],
 }
 
 

@@ -1,0 +1,22 @@
+contract_version: "1.0.0"
+applies_to: train
+order: [hflip, affine, brightness, contrast, clamp]
+
+hflip:
+  p: 0.5
+
+affine:
+  degrees: 10
+  translate: 0.05
+  scale: [0.9, 1.1]
+  shear: 0
+  interpolation: bilinear
+  fill: 0.0
+
+brightness:
+  factor_range: [0.9, 1.1]
+
+contrast:
+  factor_range: [0.9, 1.1]
+
+clamp: [0.0, 1.0]
