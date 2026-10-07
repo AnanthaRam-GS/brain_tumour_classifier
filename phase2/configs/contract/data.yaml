@@ -1,0 +1,24 @@
+contract_version: "1.0.0"
+
+raw_dir: "1512427"
+samples_dir: "data/processed/samples"
+split_csv: "data/splits/patient_split.csv"
+split_sha256: ""  # filled in by Part D after verification
+
+manifest: "phase2/artifacts/contract/manifest.csv"
+
+expected:
+  n_samples: 3064
+  n_patients: 233
+  class_counts:
+    1: 708
+    2: 1426
+    3: 930
+  split_samples:
+    train: 2120
+    val: 446
+    test: 498
+  split_patients:
+    train: 162
+    val: 34
+    test: 37
