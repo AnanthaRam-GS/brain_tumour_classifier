@@ -19,6 +19,7 @@ from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
+import joblib
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.svm import SVC
 
@@ -208,6 +209,17 @@ def run_svm_experiment(
 
     output_dir = Path(output_root) / experiment_name
     written = write_experiment_results(result, predictions, output_dir)
+
+    model_path = output_dir / "model.joblib"
+    joblib.dump(
+        {
+            "model": trained.estimator,
+            "preprocessor": preprocessed.preprocessor.pipeline,
+            "feature_columns": matrices.feature_columns,
+        },
+        model_path,
+    )
+    written["model"] = model_path
 
     search_log = {
         "selection_metric": SELECTION_METRIC,
