@@ -1,3 +1,5 @@
+import itertools
+import multiprocessing
 import time
 
 import pytest
@@ -59,6 +61,34 @@ def test_one_full_train_epoch_iterates_without_error():
     for batch in loader:
         n_seen += batch["image"].shape[0]
     assert n_seen == len(ds)
+
+
+def test_worker_equivalence_under_default_start_method_on_real_cache():
+    """No monkeypatching, no forced multiprocessing_context: this exercises
+    the platform's actual default start method (spawn on macOS), against
+    the real repo (so no monkeypatched config can go stale across a spawn's
+    fresh re-import)."""
+
+    default_method = multiprocessing.get_start_method()
+
+    ds0 = RoiDataset("train", augment=True, seed=42)
+    loader0, sampler0 = make_loader(ds0, batch_size=8, shuffle=True, seed=42, num_workers=0, device_type="cpu")
+    sampler0.set_epoch(0)
+    first3_workers0 = list(itertools.islice(loader0, 3))
+
+    ds2 = RoiDataset("train", augment=True, seed=42)
+    loader2, sampler2 = make_loader(ds2, batch_size=8, shuffle=True, seed=42, num_workers=2, device_type="cpu")
+    sampler2.set_epoch(0)
+    first3_workers2 = list(itertools.islice(loader2, 3))
+
+    assert len(first3_workers0) == 3
+    assert len(first3_workers2) == 3
+    for batch0, batch2 in zip(first3_workers0, first3_workers2):
+        assert list(batch0["sample_id"]) == list(batch2["sample_id"])
+        assert torch.equal(batch0["target"], batch2["target"])
+        assert torch.allclose(batch0["image"], batch2["image"], atol=1e-6)
+
+    print(f"\ndefault multiprocessing start method on this machine: {default_method}")
 
 
 @pytest.mark.parametrize("num_workers", [0, 2, 4])
