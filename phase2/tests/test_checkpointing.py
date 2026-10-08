@@ -190,6 +190,10 @@ def test_build_run_metadata_contains_required_fields():
         "determinism",
         "git_commit",
         "git_dirty",
+        "git_dirty_paths",
+        "roi_cache_path",
+        "weights_id",
+        "pretrained_weights_loaded",
         "python_version",
         "platform",
     }

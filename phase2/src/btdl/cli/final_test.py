@@ -69,11 +69,6 @@ def _file_sha256(path) -> str:
     return digest.hexdigest()
 
 
-def _git_is_dirty(repo_root) -> bool:
-    status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True)
-    return bool(status.strip())
-
-
 def _git_user_name(repo_root) -> str:
     try:
         return subprocess.check_output(["git", "config", "user.name"], cwd=repo_root, text=True).strip()
@@ -140,8 +135,9 @@ def _check_base_provenance(run_dir, repo_root):
     if metadata.get("contract_conformant") is not True:
         raise FinalTestError("refusing: metadata.contract_conformant is not True")
 
-    if _git_is_dirty(repo_root):
-        raise FinalTestError("refusing: the current working tree is not clean")
+    dirty_paths = config.git_dirty_paths(repo_root)
+    if dirty_paths:
+        raise FinalTestError(f"refusing: the current working tree is not clean. Offending paths: {dirty_paths}")
 
     return frozen, metadata, best_pt_sha256
 

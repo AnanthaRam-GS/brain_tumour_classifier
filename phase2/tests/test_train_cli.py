@@ -76,17 +76,32 @@ def test_final_seed_with_selection_file_and_matching_lr_allowed(git_fake_repo):
 
 def test_dirty_tree_refused_without_allow_dirty(git_fake_repo):
     tmp_path, manifest, specs = git_fake_repo
-    (tmp_path / "untracked.txt").write_text("dirty")  # never committed -> tree is dirty
+    # Untracked, under phase2/ -> tree is dirty under the scoped definition (A1).
+    (tmp_path / "phase2" / "untracked.txt").write_text("dirty")
 
     training_cfg = config.load_contract("training")
     with pytest.raises(TrainCliError, match="dirty"):
         run_train("tiny_cnn", training_cfg["lr_grid"][0], training_cfg["grid_seed"], device=DEVICE)
 
 
+def test_dirty_tree_root_untracked_file_does_not_block(git_fake_repo):
+    # A1: an untracked file OUTSIDE phase2/ (e.g. the user's own reference
+    # documents at the repo root) must not count as dirty.
+    tmp_path, manifest, specs = git_fake_repo
+    (tmp_path / "untracked_at_root.txt").write_text("not mine to touch")
+
+    training_cfg = config.load_contract("training")
+    result = run_train("tiny_cnn", training_cfg["lr_grid"][0], training_cfg["grid_seed"], smoke=True, device=DEVICE)
+    with (result.run_dir / "metadata.json").open() as handle:
+        metadata = json.load(handle)
+    assert metadata["git_dirty"] is False
+    assert metadata["git_dirty_paths"] == []
+
+
 @pytest.mark.slow
 def test_dirty_tree_allowed_with_allow_dirty_and_recorded(git_fake_repo):
     tmp_path, manifest, specs = git_fake_repo
-    (tmp_path / "untracked.txt").write_text("dirty")
+    (tmp_path / "phase2" / "untracked.txt").write_text("dirty")
 
     training_cfg = config.load_contract("training")
     result = run_train(
@@ -95,6 +110,7 @@ def test_dirty_tree_allowed_with_allow_dirty_and_recorded(git_fake_repo):
     with (result.run_dir / "metadata.json").open() as handle:
         metadata = json.load(handle)
     assert metadata["git_dirty"] is True
+    assert metadata["git_dirty_paths"] == ["phase2/untracked.txt"]
 
 
 @pytest.mark.slow

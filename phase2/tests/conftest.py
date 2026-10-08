@@ -136,6 +136,23 @@ def fake_repo(tmp_path, monkeypatch):
     return tmp_path, manifest, FAKE_REPO_SPECS
 
 
+@pytest.fixture
+def fake_repo_factory(tmp_path, monkeypatch):
+    """Like fake_repo, but as a callable so a test can set env vars (e.g.
+    BTDL_CACHE_DIR) BEFORE the ROI cache is built."""
+
+    from btdl.cli.size_tertiles import build_and_write as build_size_tertiles
+
+    def _make():
+        manifest = _build_fake_repo(tmp_path, FAKE_REPO_SPECS)
+        monkeypatch.setattr("btdl.config.repo_root", lambda: tmp_path)
+        build_cache()
+        build_size_tertiles()
+        return tmp_path, manifest, FAKE_REPO_SPECS
+
+    return _make
+
+
 def _git(args, cwd):
     import subprocess
 

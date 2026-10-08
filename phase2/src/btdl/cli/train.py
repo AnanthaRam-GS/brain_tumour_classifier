@@ -21,7 +21,6 @@ run is non-conformant) and places the run under phase2/runs/_smoke/.
 
 import argparse
 import json
-import subprocess
 from pathlib import Path
 
 from btdl import config
@@ -29,7 +28,7 @@ from btdl.cli.evaluate import run_evaluate
 from btdl.data.class_weights import compute_class_weights
 from btdl.data.dataset import RoiDataset
 from btdl.data.loader import make_loader
-from btdl.models.registry import build_model
+from btdl.models.registry import build_model, get_spec
 from btdl.runs import run_dir_for
 from btdl.training.checkpointing import normalize_cfg
 from btdl.training.device import select_device
@@ -40,11 +39,6 @@ SMOKE_MAX_EPOCHS = 2
 
 class TrainCliError(ValueError):
     """Raised when the train CLI's lr/seed protocol is violated, or on a dirty tree."""
-
-
-def _git_is_dirty(repo_root) -> bool:
-    status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True)
-    return bool(status.strip())
 
 
 def _validate_lr_seed(model_name: str, lr: float, seed: int, training_cfg) -> None:
@@ -94,10 +88,12 @@ def run_train(
     _validate_lr_seed(model_name, lr, seed, training_cfg)
 
     repo_root = config.repo_root()
-    if _git_is_dirty(repo_root) and not allow_dirty:
+    dirty_paths = config.git_dirty_paths(repo_root)
+    if dirty_paths and not allow_dirty:
         raise TrainCliError(
             "working tree is dirty; pass --allow-dirty to proceed "
-            "(the run will be recorded as git_dirty and cannot later be frozen)"
+            "(the run will be recorded as git_dirty and cannot later be frozen). "
+            f"Offending paths: {dirty_paths}"
         )
 
     effective_cfg = normalize_cfg(training_cfg)
@@ -120,7 +116,9 @@ def run_train(
     )
 
     class_weights = compute_class_weights(train_ds)
-    model = build_model(model_name, pretrained=True)
+    spec = get_spec(model_name)
+    pretrained = spec.weights_id is not None  # A3: pretrained=True exactly when the spec has weights
+    model = build_model(model_name, pretrained=pretrained)
 
     result = fit(
         model,
@@ -135,6 +133,8 @@ def run_train(
         device=device,
         resume=resume,
         model_name=model_name,
+        weights_id=spec.weights_id,
+        pretrained_weights_loaded=pretrained,
     )
 
     run_evaluate(

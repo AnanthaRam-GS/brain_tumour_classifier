@@ -71,7 +71,7 @@ def open_roi_cache(verify: bool = False) -> RoiCache:
     if _sample_order_sha256(sample_ids) != meta["sample_order_sha256"]:
         raise RoiCacheError("ROI cache sample order does not match the current manifest order")
 
-    cache_path = repo_root / meta["cache_relpath"]
+    cache_path = config.cache_dir() / f"{meta['cache_name']}.npy"
     if not cache_path.is_file():
         raise RoiCacheError(f"cache array not found: {cache_path}; run `python -m btdl.cli.build_cache` first")
 

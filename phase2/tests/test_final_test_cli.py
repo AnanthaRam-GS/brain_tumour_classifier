@@ -95,10 +95,20 @@ def test_final_test_refuses_non_conformant_metadata(trained_run):
 
 def test_final_test_refuses_dirty_working_tree(trained_run):
     tmp_path, run_dir, model, device = _frozen_run(trained_run)
-    (tmp_path / "uncommitted_file.txt").write_text("not committed")
+    # Untracked, under phase2/ -> dirty under the scoped definition (A1).
+    (tmp_path / "phase2" / "uncommitted_file.txt").write_text("not committed")
 
     with pytest.raises(FinalTestError, match="clean"):
         run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+
+
+def test_final_test_root_untracked_file_does_not_block(trained_run):
+    # A1: an untracked file outside phase2/ must not block final_test.
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    (tmp_path / "untracked_at_root.txt").write_text("not mine to touch")
+
+    metrics = run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=True, batch_size=2)
+    assert metrics["split"] == "val"
 
 
 # ---- C6: real-mode-only gates -----------------------------------------------------------
@@ -225,7 +235,7 @@ def test_rehearsal_still_requires_frozen(trained_run):
 
 def test_rehearsal_still_requires_clean_tree(trained_run):
     tmp_path, run_dir, model, device = _frozen_run(trained_run)
-    (tmp_path / "uncommitted_file.txt").write_text("not committed")
+    (tmp_path / "phase2" / "uncommitted_file.txt").write_text("not committed")
     with pytest.raises(FinalTestError, match="clean"):
         run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=True, batch_size=2)
 

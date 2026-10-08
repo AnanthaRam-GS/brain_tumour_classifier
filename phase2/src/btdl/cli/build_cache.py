@@ -55,7 +55,9 @@ def _sample_order_sha256(sample_ids) -> str:
 
 def build_cache(output_dir=None) -> dict:
     """Build the cache + provenance artifacts. Reads real data from the repo;
-    writes outputs under `output_dir` if given, else under the repo root."""
+    writes outputs under `output_dir` if given, else the cache array goes to
+    config.cache_dir() (honouring BTDL_CACHE_DIR) and the tracked provenance
+    artifacts go under the repo root."""
 
     data_contract = config.load_contract("data")
     input_contract = config.load_contract("input")
@@ -106,8 +108,9 @@ def build_cache(output_dir=None) -> dict:
         )
 
     output_root = Path(output_dir) if output_dir is not None else repo_root
+    cache_root = Path(output_dir) if output_dir is not None else config.cache_dir()
 
-    cache_path = output_root / CACHE_RELPATH
+    cache_path = cache_root / f"{CACHE_NAME}.npy"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     np.save(cache_path, cache_array)
 
@@ -117,7 +120,9 @@ def build_cache(output_dir=None) -> dict:
 
     meta = {
         "cache_name": CACHE_NAME,
-        "cache_relpath": CACHE_RELPATH,
+        "cache_relpath": CACHE_RELPATH,  # historical/documentation only -- actual
+        # resolution always goes through config.cache_dir() (see roi_cache.py),
+        # so a cache built here can be relocated (e.g. BTDL_CACHE_DIR) freely.
         "manifest_relpath": str(manifest_relpath),
         "shape": list(cache_array.shape),
         "dtype": str(cache_array.dtype),
@@ -145,7 +150,7 @@ def verify_cache() -> tuple:
     with meta_path.open() as handle:
         meta = json.load(handle)
 
-    cache_path = repo_root / meta["cache_relpath"]
+    cache_path = config.cache_dir() / f"{meta['cache_name']}.npy"
     actual_npy_sha256 = _file_sha256(cache_path)
 
     manifest_path = repo_root / meta["manifest_relpath"]
