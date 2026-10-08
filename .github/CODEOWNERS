@@ -1,0 +1,26 @@
+# Phase 2 foundation ownership. Last matching pattern wins (standard
+# CODEOWNERS semantics), so more specific rules below override broader
+# ones above them.
+#
+# Changes to contracts, shared machinery, or decision records go through
+# the owner and the process in phase2/docs/DECISIONS.md -- see
+# phase2/docs/TEAM_GUIDE.md for what teammates MAY edit without review
+# from this owner.
+
+/phase2/configs/contract/      @AnanthaRam-GS
+/phase2/src/btdl/               @AnanthaRam-GS
+/phase2/artifacts/contract/     @AnanthaRam-GS
+/phase2/docs/DECISIONS.md       @AnanthaRam-GS
+
+# Teammate-owned: one model module per architecture, plus the shared
+# catalog.py entries file -- no single owner required (reviewed by
+# whoever implements the model). This carves models/*.py out of the
+# broad /phase2/src/btdl/ rule above.
+/phase2/src/btdl/models/*.py
+/phase2/src/btdl/models/catalog.py
+
+# ... except the locked registry machinery and the shared torchvision
+# helper within models/, which stay owned (last match wins).
+/phase2/src/btdl/models/registry.py             @AnanthaRam-GS
+/phase2/src/btdl/models/model_spec.py           @AnanthaRam-GS
+/phase2/src/btdl/models/torchvision_common.py   @AnanthaRam-GS

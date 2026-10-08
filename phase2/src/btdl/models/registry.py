@@ -1,38 +1,21 @@
-"""Explicit model registry -- no import-time auto-discovery magic.
+"""Explicit model registry machinery -- no import-time auto-discovery magic.
 
-Adding a model = one new module (with a build_<name>(pretrained) -> nn.Module
-function) + one MODEL_REGISTRY entry below.
+MODEL_REGISTRY itself lives in models/catalog.py (NOT locked -- see
+artifacts/contract/foundation_lock.json / cli/lock.py), so a teammate can
+register a new architecture without touching this (locked) file. Adding a
+model = one new module (with a build_<name>(pretrained) -> nn.Module
+function) + one MODEL_REGISTRY entry in catalog.py.
+
+Re-exports ModelSpec and MODEL_REGISTRY so `from btdl.models.registry
+import ...` remains every caller's (and every test's) single entry point --
+the catalog.py/model_spec.py split underneath it is an implementation
+detail.
 """
 
-from dataclasses import dataclass
-from typing import Callable, Optional
+from btdl.models.catalog import MODEL_REGISTRY
+from btdl.models.model_spec import ModelSpec
 
-import torch.nn as nn
-
-from btdl.models.tiny_cnn import build_tiny_cnn
-
-
-@dataclass(frozen=True)
-class ModelSpec:
-    name: str
-    version: str
-    builder: Callable[[bool], nn.Module]
-    weights_id: Optional[str]
-    reference_only: bool
-    description: str
-
-
-MODEL_REGISTRY: dict = {
-    "tiny_cnn": ModelSpec(
-        name="tiny_cnn",
-        version="1.0.0",
-        builder=build_tiny_cnn,
-        weights_id=None,
-        reference_only=True,
-        description="Small 4-conv-block reference CNN; no pretrained weights; "
-        "for exercising the training/evaluation pipeline end-to-end.",
-    ),
-}
+__all__ = ["ModelSpec", "MODEL_REGISTRY", "get_spec", "list_models", "build_model"]
 
 
 def get_spec(name: str) -> ModelSpec:
@@ -45,6 +28,6 @@ def list_models() -> tuple:
     return tuple(sorted(MODEL_REGISTRY.keys()))
 
 
-def build_model(name: str, *, pretrained: bool = True) -> nn.Module:
+def build_model(name: str, *, pretrained: bool = True):
     spec = get_spec(name)
     return spec.builder(pretrained)
