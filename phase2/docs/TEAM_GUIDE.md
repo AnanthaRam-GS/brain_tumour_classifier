@@ -51,10 +51,17 @@ cd <repo>
 python3.12 -m venv phase2/.venv
 phase2/.venv/bin/pip install -e phase2 --no-deps  # pulls pyproject.toml's pinned deps
 
-# Get the ROI cache -- download link provided by the foundation owner.
-# Put roi224_v1.npy wherever you like, then either:
+# Get the ROI cache:
+curl -L -o roi224_v1.npy \
+  https://github.com/AnanthaRam-GS/brain_tumour_classifier/releases/download/phase2-foundation-v1/roi224_v1.npy
+# Then either:
 #   a) place it at phase2/cache/roi224_v1.npy (the default), or
 #   b) export BTDL_CACHE_DIR=/path/to/your/cache/dir
+# Never rebuild the cache yourself (cli/build_cache.py is foundation-owner
+# only) -- check_setup performs a full sha256 verification against the
+# tracked metadata, so a corrupted or wrong-version download is caught
+# automatically. Expected npy sha256:
+#   d9860739dc6fe5cec0c806d30e2630c4d3df24fe3f0d33c639ff4b3f88665735
 # You do NOT need the raw dataset or the per-sample NPZs -- the cache is
 # the only large asset.
 
@@ -63,9 +70,10 @@ cd phase2
 ```
 
 Every line of `check_setup`'s checklist should read `[PASS]`
-(`working tree clean` may `[WARN]` on an unrelated dirty file — that's
-fine, it's a warning, not a failure). Fix anything `[FAIL]` before you
-start training.
+(`working tree clean` may `[WARN]` on an unrelated dirty file, and
+non-CORE package version mismatches may `[WARN]` — see §4 — that's fine,
+those are warnings, not failures). Fix anything `[FAIL]` before you start
+training.
 
 ## 4. Running in Colab / Kaggle
 
@@ -75,16 +83,26 @@ runtime restart:
 ```python
 !git clone <repo-url> /content/repo
 %cd /content/repo
-!python3.12 -m venv phase2/.venv
-!phase2/.venv/bin/pip install -e phase2 --no-deps
+!pip install -e "phase2"  # installs with pyproject.toml's pinned CORE packages
 
 from google.colab import drive
 drive.mount('/content/drive')
 import os
 os.environ["BTDL_CACHE_DIR"] = "/content/drive/MyDrive/btdl_cache"  # contains roi224_v1.npy
 
-!cd phase2 && .venv/bin/python -m btdl.cli.check_setup
+!cd phase2 && python -m btdl.cli.check_setup
 ```
+
+`pip install -e "phase2"` (no `--no-deps`) resolves and installs
+pyproject.toml's pinned **CORE** packages (torch, torchvision, numpy,
+scikit-learn, scipy, h5py, pyyaml, pandas, matplotlib) itself -- those
+must match exactly, so `check_setup` `[FAIL]`s if pip resolved a different
+version for any of them. Everything else in `requirements.lock` (the
+transitive dependencies pinned in the original dev environment) is
+expected to drift on Colab's own base image -- `check_setup` only `[WARN]`s
+on those, and on a Python minor-version difference from the lock's
+recorded version. **Resolve every `[FAIL]`; a `[WARN]` is informational
+and does not block training.**
 
 To survive a disconnect mid-run: `runs/` has no env-var override, so copy
 the run directory to Drive yourself after each session and copy it back
@@ -216,9 +234,14 @@ validation set.
 
 ## 7. Git workflow
 
+Branch from `phase2-foundation-v1`, the tag the foundation owner creates
+on `main` once this handoff work is merged -- not from whatever `main`
+happens to be at the time, so your branch's foundation state stays pinned
+even if `main` moves on:
+
 ```bash
-git switch main && git pull
-git switch -c phase2/model-<your_model>
+git fetch --tags
+git switch -c phase2/model-<your_model> phase2-foundation-v1
 # ... implement, train, select, freeze, final_test, export_results ...
 git add src/btdl/models/<your_model>.py \
         src/btdl/models/catalog.py \

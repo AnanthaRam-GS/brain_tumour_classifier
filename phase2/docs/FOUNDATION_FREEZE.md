@@ -312,10 +312,51 @@ following were added on top of everything above, without changing
   successfully. No raw dataset or per-sample NPZs were needed. Both the
   temporary clone and the temporary cache copy were deleted afterward.
 
-### Updated full test counts (as of this handoff)
+### Test counts as of the handoff hardening commits
 
 - Phase 2 full suite (including slow): **453 passed**, 320.06s
 - Phase 2 fast (`-m "not slow"`): **424 passed**, 29 deselected, 73.58s
 - Phase 1 suite: **234 passed**, 17.91s
 
-All green on a clean tree immediately before this document's own commit.
+All green on a clean tree immediately before that document's own commit.
+
+## 8. Pre-freeze fix: requirements.lock (branch `phase2/handoff`)
+
+`phase2/requirements.lock` turned out to have been committed and tracked
+all along (first in `3e1c0971`, updated in `8e8a527f`) -- it was never
+missing, never gitignored, and matched the installed environment exactly.
+The earlier claim in this document's §7 and in `cli/check_setup.py`'s
+docstring that "this repo has no separate requirements.lock file" was
+simply wrong, caused by checking `cat requirements.lock` from the repo
+root in the investigating session instead of from `phase2/`. No
+`.gitignore` pattern was involved.
+
+Fixed:
+
+- `requirements.lock` now carries a 3-line header comment (generation
+  command, Python version, platform) and was regenerated via
+  `phase2/.venv/bin/python -m pip freeze --exclude-editable` (content
+  identical to what was already committed, modulo the new header) -- 42
+  lines total, sha256 `90342a26323fbcc80713e213dfcc29c38ad44b22851accf1fb5f94cd23207fa8`.
+- `check_setup`'s version check now enforces a two-tier policy: the CORE
+  packages (torch, torchvision, numpy, scikit-learn, scipy, h5py, pyyaml,
+  pandas, matplotlib) must exactly match `pyproject.toml`'s pins (FAIL
+  otherwise); every other package in `requirements.lock`, and the lock's
+  recorded Python minor version, only WARN on a mismatch (a different
+  OS/Python -- e.g. Colab -- may legitimately need different transitive
+  versions).
+- `README.md` and `docs/TEAM_GUIDE.md` updated: the install commands were
+  already accurate (the file always existed), but now explain the
+  CORE-vs-everything-else policy, the Colab `pip install -e "phase2"`
+  flow, and branching from the `phase2-foundation-v1` tag (created by the
+  foundation owner after this work merges) instead of from `main` HEAD.
+- Foundation lock regenerated (`cli/check_setup.py` is a locked file and
+  changed) -- `lock_version` stays **1.0.0**; `contract_dir_sha256`
+  unchanged (`311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6`).
+
+### Updated full test counts (as of this pre-freeze fix)
+
+- Phase 2 full suite (including slow): **461 passed**, 315.92s
+- Phase 1 suite: **234 passed**, 17.82s
+
+All green on a clean tree immediately before this fix's commit.
