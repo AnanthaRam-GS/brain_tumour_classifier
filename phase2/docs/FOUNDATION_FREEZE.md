@@ -7,6 +7,12 @@ device (Apple MPS). Everything described here is frozen: later work (model
 architectures, grid runs, final test-set evaluation) builds on top of it
 without modifying it.
 
+**Handoff update (branch `phase2/handoff`):** the foundation is now also
+protected by an explicit, machine-checked lock (see §7 below).
+`configs/contract/` itself did not change -- the `contract_dir_sha256`
+below is still exact. §7 also records the updated full test counts as of
+this handoff work.
+
 ## 1. What is frozen
 
 ### Contracts
@@ -252,3 +258,64 @@ reference (the `runs/` directory itself stays gitignored):
 AlexNet, VGG16, GoogLeNet, ResNet18, and EfficientNet-B0 registry entries,
 and any real (non-rehearsal) `final_test` run against the actual test split,
 are explicitly out of scope here and were not touched.
+
+## 7. Handoff hardening (branch `phase2/handoff`)
+
+Before opening the foundation to parallel model development, the
+following were added on top of everything above, without changing
+`configs/contract/` (`contract_dir_sha256` is unchanged, §1):
+
+- **Scoped dirty-tree definition (A1):** `train`/`final_test`/run metadata
+  now only treat a tree as dirty for tracked changes anywhere in the repo
+  or untracked files under `phase2/` -- an untracked file at the repo
+  root no longer blocks training. Offending paths are recorded in
+  `metadata.json`'s `git_dirty_paths`.
+- **`BTDL_CACHE_DIR` (A2):** overrides the default `phase2/cache/`
+  directory for both reading and building the ROI cache; the resolved
+  path is recorded in `metadata.json`'s `roi_cache_path`.
+- **Pretrained-weights provenance (A3):** `metadata.json` records
+  `weights_id` and `pretrained_weights_loaded`; `cli/train.py` passes
+  `pretrained=True` exactly when the model's registry spec has a
+  `weights_id`.
+- **Shared torchvision classifier helper (D8):**
+  `models/torchvision_common.py`'s `build_torchvision_classifier()`
+  implements "load a torchvision architecture, optionally with ImageNet
+  weights, replace its final layer with `nn.Linear(in_features, 3)`" once,
+  with a verified `head_path`/`builder_kwargs` table for all five
+  remaining architectures (see `docs/TEAM_GUIDE.md`).
+- **Foundation lock:** `cli/lock.py` (`--write`/`--check`) hashes every
+  locked foundation file -- `configs/contract/`, `config.py`,
+  `contracts.py`, `runs.py`, every `.py` file under
+  `data/preprocessing/training/evaluation/cli/`, and the registry
+  machinery (`models/registry.py`, `models/model_spec.py`,
+  `models/torchvision_common.py`) -- into the tracked
+  `artifacts/contract/foundation_lock.json` (`lock_version` **1.0.0**),
+  alongside `contract_dir_sha256`. `models/catalog.py` and any
+  `models/<model>.py` are deliberately NOT locked, so a teammate can
+  register a new architecture without review from the foundation owner.
+  `.github/CODEOWNERS` encodes the same split.
+- **`cli/check_setup.py`:** a PASS/FAIL/WARN checklist (versions, btdl's
+  import location, device, contracts, the foundation lock, manifest/split
+  hashes, a full ROI cache sha256 verify, working-tree cleanliness as a
+  WARN, no Phase 1 `src` import, and the registry) that exits non-zero on
+  any FAIL.
+- **`cli/export_results.py`:** copies a real-final-tested run's
+  human-review artifacts (never a checkpoint) into tracked
+  `artifacts/results/<model>/seed<seed>/`, validated with
+  `validate_evaluation_dir(require_contract=True)`.
+- **Fresh-clone, cache-only rehearsal:** a plain `git clone` of this repo
+  (outside the working tree, at this branch's HEAD) with only
+  `roi224_v1.npy` copied in and `BTDL_CACHE_DIR` pointed at it --
+  `check_setup` passed every check from the clone (confirmed `btdl`
+  resolved under the clone's own `phase2/src`), and
+  `cli.train --model tiny_cnn --lr 1e-3 --seed 42 --smoke` completed
+  successfully. No raw dataset or per-sample NPZs were needed. Both the
+  temporary clone and the temporary cache copy were deleted afterward.
+
+### Updated full test counts (as of this handoff)
+
+- Phase 2 full suite (including slow): **453 passed**, 320.06s
+- Phase 2 fast (`-m "not slow"`): **424 passed**, 29 deselected, 73.58s
+- Phase 1 suite: **234 passed**, 17.91s
+
+All green on a clean tree immediately before this document's own commit.
