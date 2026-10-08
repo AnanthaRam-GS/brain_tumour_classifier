@@ -66,9 +66,12 @@ def write_evaluation(
     n_resamples: int = None,
     bootstrap_seed: int = None,
     alpha: float = None,
+    extra: dict = None,
 ) -> dict:
     """n_resamples/bootstrap_seed/alpha default to configs/contract/evaluation.yaml's
-    bootstrap section; tests may pass smaller values explicitly for speed."""
+    bootstrap section; tests may pass smaller values explicitly for speed.
+    extra (optional): additional JSON-compatible keys merged into
+    metrics.json, e.g. a caller-computed reload_max_abs_diff."""
 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -102,6 +105,8 @@ def write_evaluation(
         "git_commit": run_metadata.get("git_commit"),
         "contract_dir_sha256": run_metadata.get("contract_dir_sha256"),
     }
+    if extra:
+        metrics_payload.update(extra)
     _write_json(metrics_payload, out_dir / "metrics.json")
 
     predicted_idx = predictions.probs.argmax(axis=1)

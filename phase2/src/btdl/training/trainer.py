@@ -176,12 +176,19 @@ def fit(
     device,
     resume: bool = False,
     stop_after_epoch=None,
+    model_name: str = None,
 ) -> FitResult:
     """stop_after_epoch (optional): halt after completing that epoch, as if
     preempted -- distinct from cfg["max_epochs"], which stays fixed across a
     paused/resumed pair of calls so the cosine schedule's T_max (the true
     total training horizon) does not change between them. For external
-    callers this is normally left at its default (None)."""
+    callers this is normally left at its default (None).
+
+    model_name (optional): recorded in metadata instead of
+    type(model).__name__ -- callers using the model registry (btdl.models.
+    registry) should pass the REGISTRY key here (e.g. "tiny_cnn"), since
+    build_model(metadata["model_name"]) must resolve it later; the class
+    name (e.g. "TinyCNN") would not."""
     run_dir = Path(run_dir)
 
     if run_dir.exists() and not resume:
@@ -243,7 +250,7 @@ def fit(
         log.write(f"resumed from epoch {payload['epoch']}; continuing at epoch {start_epoch}")
 
     device_description = describe_device(device)
-    model_name = type(model).__name__
+    model_name = model_name if model_name is not None else type(model).__name__
     model_version = getattr(model, "version", "unknown")
 
     stop_reason = "max_epochs"
