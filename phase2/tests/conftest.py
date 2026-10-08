@@ -114,6 +114,7 @@ def _build_fake_repo(tmp_path, specs):
     real_contract_dir = config.repo_root() / "phase2" / "configs" / "contract"
     shutil.copy(real_contract_dir / "input.yaml", contract_dir / "input.yaml")
     shutil.copy(real_contract_dir / "augmentation.yaml", contract_dir / "augmentation.yaml")
+    shutil.copy(real_contract_dir / "training.yaml", contract_dir / "training.yaml")
 
     return manifest
 
@@ -121,10 +122,76 @@ def _build_fake_repo(tmp_path, specs):
 @pytest.fixture
 def fake_repo(tmp_path, monkeypatch):
     """A tiny synthetic repo (8 samples, 6 patients, train/val/test) with a built
-    ROI cache, for Dataset/Sampler/Loader/class-weight tests. Yields
+    ROI cache (incl. roi_geometry.csv) and size_tertiles.json, for Dataset/
+    Sampler/Loader/class-weight/evaluation-CLI tests. Yields
     (tmp_path, manifest, specs)."""
+
+    from btdl.cli.size_tertiles import build_and_write as build_size_tertiles
 
     manifest = _build_fake_repo(tmp_path, FAKE_REPO_SPECS)
     monkeypatch.setattr("btdl.config.repo_root", lambda: tmp_path)
     build_cache()
+    build_size_tertiles()
     return tmp_path, manifest, FAKE_REPO_SPECS
+
+
+def _git(args, cwd):
+    import subprocess
+
+    subprocess.run(["git"] + args, cwd=cwd, check=True, capture_output=True, text=True)
+
+
+@pytest.fixture
+def trained_run(fake_repo):
+    """A real (minimal) git repo around the fake_repo fixture, with one toy
+    model trained to a conformant run_dir under phase2/runs/ (gitignored, so
+    the working tree reads as clean even after writing checkpoints) --
+    for cli/evaluate.py, cli/freeze.py, cli/final_test.py tests.
+    Yields (tmp_path, run_dir, model, device)."""
+
+    import torch
+
+    from btdl import config
+    from btdl.data.class_weights import compute_class_weights
+    from btdl.data.dataset import RoiDataset
+    from btdl.data.loader import make_loader
+    from btdl.training.device import select_device
+    from btdl.training.trainer import fit
+    from tests.toy_training import ToyModel
+
+    tmp_path, manifest, specs = fake_repo
+
+    (tmp_path / ".gitignore").write_text("phase2/runs/\n")
+    _git(["init"], cwd=tmp_path)
+    _git(["config", "user.email", "test@example.com"], cwd=tmp_path)
+    _git(["config", "user.name", "Test User"], cwd=tmp_path)
+    _git(["add", "-A"], cwd=tmp_path)
+    _git(["commit", "-m", "init"], cwd=tmp_path)
+
+    train_ds = RoiDataset("train", augment=True, seed=42)
+    val_ds = RoiDataset("val", augment=False, seed=42)
+    train_loader, train_sampler = make_loader(
+        train_ds, batch_size=2, shuffle=True, seed=42, num_workers=0, device_type="cpu"
+    )
+    val_loader, _ = make_loader(val_ds, batch_size=2, shuffle=False, seed=42, num_workers=0, device_type="cpu")
+
+    class_weights = compute_class_weights(train_ds)
+    torch.manual_seed(0)
+    model = ToyModel()
+    device = select_device("cpu")
+    cfg = config.load_contract("training")  # the REAL, unmodified contract -> conformant
+    run_dir = tmp_path / "phase2" / "runs" / "run1"
+    fit(
+        model,
+        train_loader=train_loader,
+        train_sampler=train_sampler,
+        val_loader=val_loader,
+        class_weights=class_weights,
+        cfg=cfg,
+        lr=cfg["lr_grid"][0],
+        seed=42,
+        run_dir=run_dir,
+        device=device,
+    )
+
+    return tmp_path, run_dir, model, device

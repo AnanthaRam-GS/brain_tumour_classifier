@@ -1,0 +1,10 @@
+{
+  "basis": "train_crop_side_tertiles",
+  "edges": [
+    75.0,
+    113.66666666666674
+  ],
+  "max": 403.0,
+  "min": 20.0,
+  "n_train": 2120
+}

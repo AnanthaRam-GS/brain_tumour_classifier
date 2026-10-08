@@ -14,6 +14,7 @@ import logging
 import os
 import platform
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 
 import torch
@@ -22,6 +23,61 @@ import torchvision
 from btdl import config
 
 logger = logging.getLogger(__name__)
+
+_MISSING = object()
+
+
+def normalize_cfg(value):
+    """Recursively convert FrozenDict/dict -> dict and tuple/list -> list.
+
+    Used both to make an effective cfg JSON-serializable for metadata, and
+    to compare two cfg-like structures (contract vs. effective) regardless
+    of which concrete container types they use.
+    """
+
+    if isinstance(value, Mapping):
+        return {key: normalize_cfg(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [normalize_cfg(item) for item in value]
+    return value
+
+
+def compute_contract_deviations(contract_cfg, effective_cfg) -> list:
+    """Leaf-level differences between a committed contract and an effective cfg.
+
+    Each entry is {"key": dotted path, "contract_value": ..., "effective_value": ...}.
+    A key present in one but not the other shows up with the missing side as None.
+    """
+
+    deviations = []
+    _diff_cfg(contract_cfg, effective_cfg, "", deviations)
+    return deviations
+
+
+def _diff_cfg(contract_value, effective_value, path, out):
+    contract_value = normalize_cfg(contract_value)
+    effective_value = normalize_cfg(effective_value)
+
+    contract_is_dict = isinstance(contract_value, dict)
+    effective_is_dict = isinstance(effective_value, dict)
+    if contract_is_dict or effective_is_dict:
+        contract_dict = contract_value if contract_is_dict else {}
+        effective_dict = effective_value if effective_is_dict else {}
+        for key in sorted(set(contract_dict.keys()) | set(effective_dict.keys())):
+            child_path = f"{path}.{key}" if path else key
+            _diff_cfg(
+                contract_dict.get(key, _MISSING), effective_dict.get(key, _MISSING), child_path, out
+            )
+        return
+
+    if contract_value != effective_value:
+        out.append(
+            {
+                "key": path,
+                "contract_value": None if contract_value is _MISSING else contract_value,
+                "effective_value": None if effective_value is _MISSING else effective_value,
+            }
+        )
 
 # torch's own optimizer state_dicts (e.g. AdamW) embed a TorchVersion marker
 # for internal state-dict versioning. It's a plain str subclass shipped by
@@ -98,6 +154,7 @@ def build_run_metadata(
     model,
     model_name: str,
     model_version: str,
+    effective_cfg,
     lr: float,
     seed: int,
     best_epoch,
@@ -106,11 +163,20 @@ def build_run_metadata(
     device_description: dict,
     determinism_settings: dict,
 ) -> dict:
-    """A JSON-compatible-primitives-only dict describing one run/checkpoint."""
+    """A JSON-compatible-primitives-only dict describing one run/checkpoint.
+
+    effective_cfg is the cfg ACTUALLY used by fit() for this run -- recorded
+    in full, and compared (not silently substituted) against the committed
+    training.yaml to produce contract_conformant/contract_deviations.
+    """
 
     repo_root = config.repo_root()
     training_cfg = config.load_contract("training")
     data_cfg = config.load_contract("data")
+
+    effective_cfg_normalized = normalize_cfg(effective_cfg)
+    contract_deviations = compute_contract_deviations(training_cfg, effective_cfg)
+    contract_conformant = len(contract_deviations) == 0
 
     manifest_path = repo_root / data_cfg["manifest"]
     manifest_sha256 = _file_sha256(manifest_path) if manifest_path.is_file() else None
@@ -138,14 +204,17 @@ def build_run_metadata(
         "trainable_parameters": int(trainable_parameters),
         "contract_version": training_cfg["contract_version"],
         "contract_dir_sha256": config.contract_dir_sha256(),
+        "effective_cfg": effective_cfg_normalized,
+        "contract_conformant": contract_conformant,
+        "contract_deviations": contract_deviations,
         "manifest_sha256": manifest_sha256,
         "split_sha256": data_cfg["split_sha256"],
         "roi_cache_npy_sha256": roi_cache_npy_sha256,
         "augmentation_yaml_sha256": augmentation_yaml_sha256,
         "training_yaml_sha256": training_yaml_sha256,
         "lr": lr,
-        "weight_decay": training_cfg["optimizer"]["weight_decay"],
-        "batch_size": training_cfg["batch_size"],
+        "weight_decay": effective_cfg_normalized["optimizer"]["weight_decay"],
+        "batch_size": effective_cfg_normalized["batch_size"],
         "seed": seed,
         "best_epoch": best_epoch,
         "best_val_macro_f1": best_val_macro_f1,
