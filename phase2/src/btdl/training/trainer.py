@@ -177,6 +177,8 @@ def fit(
     resume: bool = False,
     stop_after_epoch=None,
     model_name: str = None,
+    weights_id: str = None,
+    pretrained_weights_loaded: bool = False,
 ) -> FitResult:
     """stop_after_epoch (optional): halt after completing that epoch, as if
     preempted -- distinct from cfg["max_epochs"], which stays fixed across a
@@ -188,7 +190,10 @@ def fit(
     type(model).__name__ -- callers using the model registry (btdl.models.
     registry) should pass the REGISTRY key here (e.g. "tiny_cnn"), since
     build_model(metadata["model_name"]) must resolve it later; the class
-    name (e.g. "TinyCNN") would not."""
+    name (e.g. "TinyCNN") would not.
+
+    weights_id/pretrained_weights_loaded (optional, A3): pretrained-weights
+    provenance, recorded verbatim in every checkpoint's metadata."""
     run_dir = Path(run_dir)
 
     if run_dir.exists() and not resume:
@@ -340,6 +345,8 @@ def fit(
             best_val_loss=early_stopping.best_loss,
             device_description=device_description,
             determinism_settings=determinism_settings,
+            weights_id=weights_id,
+            pretrained_weights_loaded=pretrained_weights_loaded,
         )
 
         if step_result.improved:

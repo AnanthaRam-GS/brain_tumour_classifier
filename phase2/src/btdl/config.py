@@ -8,6 +8,7 @@ elsewhere than the code.
 
 import hashlib
 import os
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -70,6 +71,54 @@ def resolve_data_path(rel) -> Path:
     """A path under data_root() for a path relative to the data root."""
 
     return data_root() / Path(rel)
+
+
+def cache_dir() -> Path:
+    """BTDL_CACHE_DIR if set (must exist), otherwise phase2/cache/ under repo_root().
+
+    roi_cache.py (read) and cli/build_cache.py (write) both resolve the ROI
+    cache array through this function, so a teammate can point BTDL_CACHE_DIR
+    at a Drive-mounted or pre-downloaded cache directory without touching
+    code.
+    """
+
+    override = os.environ.get("BTDL_CACHE_DIR")
+    if override is None:
+        return repo_root() / _PHASE2_DIR_NAME / "cache"
+    path = Path(override).expanduser()
+    if not path.is_dir():
+        raise ValueError(f"BTDL_CACHE_DIR does not exist or is not a directory: {path}")
+    return path.resolve()
+
+
+def git_dirty_paths(root=None) -> list:
+    """Offending paths under the Phase 2 dirty-tree definition.
+
+    dirty = any TRACKED file modified/staged/deleted anywhere in the repo,
+    OR any untracked, non-ignored file under phase2/. An untracked file
+    outside phase2/ (e.g. the user's own reference documents at the repo
+    root) does not count -- `git status --porcelain` never lists ignored
+    files, so every untracked line here is already non-ignored.
+    """
+
+    root = Path(root) if root is not None else repo_root()
+    status = subprocess.check_output(["git", "status", "--porcelain"], cwd=root, text=True)
+    offending = []
+    for line in status.splitlines():
+        if not line:
+            continue
+        code, rest = line[:2], line[3:]
+        path = rest.split(" -> ", 1)[-1] if " -> " in rest else rest
+        if code == "??":
+            if path == _PHASE2_DIR_NAME or path.startswith(_PHASE2_DIR_NAME + "/"):
+                offending.append(path)
+        else:
+            offending.append(path)
+    return offending
+
+
+def git_is_dirty(root=None) -> bool:
+    return bool(git_dirty_paths(root))
 
 
 def _freeze(value):

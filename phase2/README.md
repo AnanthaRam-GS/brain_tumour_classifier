@@ -12,6 +12,15 @@ phase2/.venv/bin/pip install -r phase2/requirements.lock
 phase2/.venv/bin/pip install -e phase2 --no-deps
 ```
 
+`phase2/requirements.lock` is the full pinned dependency set (`pip freeze
+--exclude-editable`, header comment records the Python version/platform it
+was generated on); `pyproject.toml` pins only the CORE packages
+(torch/torchvision/numpy/scikit-learn/scipy/h5py/pyyaml/pandas/matplotlib)
+that training/evaluation correctness depends on. `python -m
+btdl.cli.check_setup` verifies both after install -- see
+[`docs/TEAM_GUIDE.md`](docs/TEAM_GUIDE.md) for its full checklist and the
+CORE-vs-everything-else version policy.
+
 ## Running tests
 
 ```bash
@@ -41,3 +50,11 @@ preprocessing, training, or evaluation code.
 Teammates: do not edit `configs/contract/` or
 `src/btdl/{data,preprocessing,training,evaluation}` without going through
 the decision-change process in `docs/DECISIONS.md`.
+
+## Implementing a model
+
+If you're adding one of the five architectures (AlexNet, VGG16,
+GoogLeNet, ResNet18, EfficientNet-B0), start at
+[`docs/TEAM_GUIDE.md`](docs/TEAM_GUIDE.md) -- it covers setup, what you
+may edit, the model implementation template, and the exact command
+sequence from a smoke run to exported results.

@@ -105,11 +105,11 @@ def _git_commit_and_dirty():
     except Exception:
         commit = "unknown"
     try:
-        status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True)
-        dirty = bool(status.strip())
+        dirty_paths = config.git_dirty_paths(repo_root)
+        dirty = bool(dirty_paths)
     except Exception:
-        dirty = None
-    return commit, dirty
+        dirty, dirty_paths = None, None
+    return commit, dirty, dirty_paths
 
 
 def _atomic_torch_save(obj, path) -> None:
@@ -162,12 +162,19 @@ def build_run_metadata(
     best_val_loss,
     device_description: dict,
     determinism_settings: dict,
+    weights_id: str = None,
+    pretrained_weights_loaded: bool = False,
 ) -> dict:
     """A JSON-compatible-primitives-only dict describing one run/checkpoint.
 
     effective_cfg is the cfg ACTUALLY used by fit() for this run -- recorded
     in full, and compared (not silently substituted) against the committed
     training.yaml to produce contract_conformant/contract_deviations.
+
+    weights_id/pretrained_weights_loaded: pretrained-weights provenance
+    (A3) -- the caller (cli/train.py) passes the registry spec's
+    weights_id and whether build_model(pretrained=True) actually loaded
+    them (i.e. weights_id is not None).
     """
 
     repo_root = config.repo_root()
@@ -183,9 +190,14 @@ def build_run_metadata(
 
     roi_cache_meta_path = repo_root / "phase2" / "artifacts" / "contract" / "roi_cache_meta.json"
     roi_cache_npy_sha256 = None
+    roi_cache_path = None
     if roi_cache_meta_path.is_file():
         with roi_cache_meta_path.open() as handle:
-            roi_cache_npy_sha256 = json.load(handle).get("npy_sha256")
+            roi_cache_meta = json.load(handle)
+        roi_cache_npy_sha256 = roi_cache_meta.get("npy_sha256")
+        cache_name = roi_cache_meta.get("cache_name")
+        if cache_name:
+            roi_cache_path = str(config.cache_dir() / f"{cache_name}.npy")
 
     augmentation_yaml_sha256 = _file_sha256(
         repo_root / "phase2" / "configs" / "contract" / "augmentation.yaml"
@@ -195,7 +207,7 @@ def build_run_metadata(
     total_parameters = sum(p.numel() for p in model.parameters())
     trainable_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    git_commit, git_dirty = _git_commit_and_dirty()
+    git_commit, git_dirty, git_dirty_paths = _git_commit_and_dirty()
 
     return {
         "model_name": model_name,
@@ -210,8 +222,11 @@ def build_run_metadata(
         "manifest_sha256": manifest_sha256,
         "split_sha256": data_cfg["split_sha256"],
         "roi_cache_npy_sha256": roi_cache_npy_sha256,
+        "roi_cache_path": roi_cache_path,
         "augmentation_yaml_sha256": augmentation_yaml_sha256,
         "training_yaml_sha256": training_yaml_sha256,
+        "weights_id": weights_id,
+        "pretrained_weights_loaded": pretrained_weights_loaded,
         "lr": lr,
         "weight_decay": effective_cfg_normalized["optimizer"]["weight_decay"],
         "batch_size": effective_cfg_normalized["batch_size"],
@@ -225,6 +240,7 @@ def build_run_metadata(
         "determinism": determinism_settings,
         "git_commit": git_commit,
         "git_dirty": git_dirty,
+        "git_dirty_paths": git_dirty_paths,
         "python_version": platform.python_version(),
         "platform": platform.platform(),
     }
