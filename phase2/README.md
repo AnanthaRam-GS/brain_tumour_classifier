@@ -21,6 +21,16 @@ cd phase2
 
 (equivalently, from the repo root: `phase2/.venv/bin/python -m pytest -q phase2/tests`)
 
+For fast iteration, skip the `slow` tests (real-data full passes, default-size
+bootstrap, trainer convergence runs -- anything over ~5s):
+
+```bash
+.venv/bin/python -m pytest -q -m "not slow"
+```
+
+**The full suite (no `-m` filter) is required before every merge** -- `-m "not
+slow"` is for iteration only.
+
 ## Decisions
 
 All frozen Phase 2 design decisions (data source, split, ROI geometry,

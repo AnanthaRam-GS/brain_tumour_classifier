@@ -23,6 +23,7 @@ def _load_committed_manifest():
     return pd.read_csv(manifest_path, dtype={"sample_id": str, "patient_id": str})
 
 
+@pytest.mark.slow
 def test_committed_manifest_matches_local_data():
     manifest = _load_committed_manifest()
     data_root = config.data_root()

@@ -1,0 +1,7 @@
+name: tiny_cnn
+version: "1.0.0"
+weights_id: null
+reference_only: true
+description: >-
+  Small 4-conv-block reference CNN; no pretrained weights; for exercising
+  the training/evaluation pipeline end-to-end.

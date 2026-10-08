@@ -115,6 +115,7 @@ def test_synthetic_parity_exact(cfg, case_name):
 
 
 @pytest.mark.data
+@pytest.mark.slow
 def test_real_data_parity_all_samples():
     contract = config.load_contract("data")
     samples_dir = config.resolve_data_path(contract["samples_dir"])

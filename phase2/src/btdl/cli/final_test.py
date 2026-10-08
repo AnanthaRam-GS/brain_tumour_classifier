@@ -1,4 +1,4 @@
-"""python -m btdl.cli.final_test --run-dir R --confirm-final-test --model-class pkg.mod:ClassName
+"""python -m btdl.cli.final_test --run-dir R --confirm-final-test [--rehearsal]
 
 The ONLY sanctioned way Phase 2 touches the real test split. Every
 requirement below is checked BEFORE any test data is loaded:
@@ -6,10 +6,25 @@ requirement below is checked BEFORE any test data is loaded:
   - the checkpoint's contract hash equals the CURRENT contract
   - metadata.contract_conformant is true
   - the current working tree is clean
+Real mode (default) additionally requires:
   - this run has no prior entry in the test-access log
-Then predicts on RoiDataset("test", ..., allow_test=True) and writes
-R/eval/test/ (same artifacts and plots as cli/evaluate.py). Appends one row
-to the tracked phase2/artifacts/test_access_log.csv.
+  - the model is NOT reference_only (tiny_cnn, for example, can never pass
+    this -- only a real architecture can)
+  - the run's lr equals the selected lr in
+    phase2/artifacts/selection/<model>.json, and its seed is in
+    training.yaml's final_seeds
+  Then predicts on RoiDataset("test", ..., allow_test=True) and writes
+  R/eval/test/, and appends one row to the tracked
+  phase2/artifacts/test_access_log.csv.
+
+--rehearsal (D17) runs the IDENTICAL pipeline on the VALIDATION split
+instead, writing R/eval/rehearsal_val/. It still requires FROZEN and
+enforces every provenance gate above, but the selection and
+reference_only gates are waived (so tiny_cnn, or an unselected lr/seed,
+can rehearse). It NEVER writes the access log and NEVER constructs the
+test dataset -- allow_test=True appears nowhere outside the real path
+(see test_no_allow_test_outside_final_test.py). Also checks reload
+equivalence (C8), same as cli/evaluate.py.
 """
 
 import argparse
@@ -25,7 +40,9 @@ from btdl.data.dataset import RoiDataset
 from btdl.data.loader import make_loader
 from btdl.evaluation.plots import plot_confusion_matrix, plot_roc_curves, plot_training_curves
 from btdl.evaluation.predict import predict
+from btdl.evaluation.reload_check import ReloadEquivalenceError, compute_reload_max_abs_diff
 from btdl.evaluation.results import write_evaluation
+from btdl.models.registry import build_model, get_spec
 from btdl.training.checkpointing import load_checkpoint
 from btdl.training.device import select_device
 
@@ -89,20 +106,8 @@ def _append_log_row(log_path, row: dict) -> None:
         writer.writerow(row)
 
 
-def run_final_test(
-    run_dir,
-    model,
-    *,
-    confirm_final_test: bool,
-    device,
-    batch_size: int = 64,
-    num_workers: int = 0,
-) -> dict:
-    if not confirm_final_test:
-        raise FinalTestError("final_test requires --confirm-final-test")
-
-    run_dir = Path(run_dir)
-    repo_root = config.repo_root()
+def _check_base_provenance(run_dir, repo_root):
+    """Gates required in BOTH real and rehearsal mode. Returns (frozen, metadata, best_pt_sha256)."""
 
     frozen_path = run_dir / "FROZEN.json"
     best_path = run_dir / "best.pt"
@@ -115,11 +120,10 @@ def run_final_test(
 
     if not best_path.is_file():
         raise FinalTestError(f"best.pt not found in {run_dir}")
-    actual_best_sha256 = _file_sha256(best_path)
-    if actual_best_sha256 != frozen.get("best_pt_sha256"):
+    best_pt_sha256 = _file_sha256(best_path)
+    if best_pt_sha256 != frozen.get("best_pt_sha256"):
         raise FinalTestError(
-            "best.pt sha256 does not match FROZEN.json: "
-            f"expected {frozen.get('best_pt_sha256')}, got {actual_best_sha256}"
+            f"best.pt sha256 does not match FROZEN.json: expected {frozen.get('best_pt_sha256')}, got {best_pt_sha256}"
         )
 
     current_contract_hash = config.contract_dir_sha256()
@@ -134,10 +138,39 @@ def run_final_test(
     with metadata_path.open() as handle:
         metadata = json.load(handle)
     if metadata.get("contract_conformant") is not True:
-        raise FinalTestError("refusing final_test: metadata.contract_conformant is not True")
+        raise FinalTestError("refusing: metadata.contract_conformant is not True")
 
     if _git_is_dirty(repo_root):
-        raise FinalTestError("refusing final_test: the current working tree is not clean")
+        raise FinalTestError("refusing: the current working tree is not clean")
+
+    return frozen, metadata, best_pt_sha256
+
+
+def _check_real_mode_gates(run_dir, metadata, repo_root):
+    """Gates required ONLY in real mode (waived for --rehearsal)."""
+
+    spec = get_spec(metadata["model_name"])
+    if spec.reference_only:
+        raise FinalTestError(
+            f"refusing: model {metadata['model_name']!r} is reference_only -- only a real "
+            "architecture may run a real final_test (use --rehearsal instead)"
+        )
+
+    training_cfg = config.load_contract("training")
+    final_seeds = list(training_cfg["final_seeds"])
+    if metadata.get("seed") not in final_seeds:
+        raise FinalTestError(f"refusing: run seed {metadata.get('seed')} is not in final_seeds {final_seeds}")
+
+    selection_path = repo_root / "phase2" / "artifacts" / "selection" / f"{metadata['model_name']}.json"
+    if not selection_path.is_file():
+        raise FinalTestError(f"refusing: no selection file at {selection_path} -- run cli/select_lr.py first")
+    with selection_path.open() as handle:
+        selection = json.load(handle)
+    if metadata.get("lr") != selection["selected_lr"]:
+        raise FinalTestError(
+            f"refusing: run lr {metadata.get('lr')} does not match the selected lr "
+            f"{selection['selected_lr']} in {selection_path}"
+        )
 
     run_dir_rel = _relative_run_dir(run_dir, repo_root)
     log_path = repo_root / TEST_ACCESS_LOG_RELPATH
@@ -146,17 +179,36 @@ def run_final_test(
             f"{run_dir_rel} already has a test-access log entry -- final_test may run only once per run"
         )
 
-    # --- Every gate above passed. Only now does any test data get loaded. ---
-    load_checkpoint(best_path, model, device=device, strict_contract=True)
 
-    dataset = RoiDataset("test", augment=False, seed=metadata.get("seed", 0), allow_test=True)
+def _write_split_evaluation(run_dir, model, device, *, split, out_dirname, metadata, batch_size, num_workers):
+    seed = metadata.get("seed", 0)
+    if split == "test":
+        # The only allow_test=True usage outside this literal call is refused
+        # by test_no_allow_test_outside_final_test.py's guard test.
+        dataset = RoiDataset(split, augment=False, seed=seed, allow_test=True)
+    else:
+        dataset = RoiDataset(split, augment=False, seed=seed)
     loader, _ = make_loader(
         dataset, batch_size=batch_size, shuffle=False, seed=0, num_workers=num_workers, device_type=device.type
     )
     predictions = predict(model, loader, device)
 
-    out_dir = run_dir / "eval" / "test"
-    metrics = write_evaluation(out_dir, predictions=predictions, run_metadata=metadata, split="test")
+    extra = {}
+    if split == "val":
+        val_predictions_path = run_dir / "val_predictions.csv"
+        if val_predictions_path.is_file():
+            reload_max_abs_diff = compute_reload_max_abs_diff(predictions, val_predictions_path)
+            atol = config.load_contract("evaluation")["reload_equivalence_atol"]
+            if reload_max_abs_diff > atol:
+                raise ReloadEquivalenceError(
+                    f"reload equivalence failed: max abs diff {reload_max_abs_diff} > atol {atol}"
+                )
+            extra["reload_max_abs_diff"] = reload_max_abs_diff
+
+    out_dir = run_dir / "eval" / out_dirname
+    metrics = write_evaluation(
+        out_dir, predictions=predictions, run_metadata=metadata, split=split, extra=extra
+    )
 
     plot_confusion_matrix(metrics["confusion_matrix"], out_dir)
     with (out_dir / "roc_curves.json").open() as handle:
@@ -166,6 +218,48 @@ def run_final_test(
     if history_path.is_file():
         plot_training_curves(history_path, out_dir)
 
+    return metrics, predictions, out_dir
+
+
+def run_final_test(
+    run_dir,
+    *,
+    confirm_final_test: bool,
+    device,
+    rehearsal: bool = False,
+    batch_size: int = 64,
+    num_workers: int = 0,
+) -> dict:
+    if not confirm_final_test:
+        raise FinalTestError("final_test requires --confirm-final-test")
+
+    run_dir = Path(run_dir)
+    repo_root = config.repo_root()
+
+    frozen, metadata, best_pt_sha256 = _check_base_provenance(run_dir, repo_root)
+
+    if not rehearsal:
+        _check_real_mode_gates(run_dir, metadata, repo_root)
+
+    # --- Every required gate passed. Only now does the model get loaded
+    # and (in real mode only) the test dataset get constructed. ---
+    model = build_model(metadata["model_name"], pretrained=False)
+    load_checkpoint(run_dir / "best.pt", model, device=device, strict_contract=True)
+
+    if rehearsal:
+        metrics, _, _ = _write_split_evaluation(
+            run_dir, model, device, split="val", out_dirname="rehearsal_val",
+            metadata=metadata, batch_size=batch_size, num_workers=num_workers,
+        )
+        return metrics
+
+    metrics, _, _ = _write_split_evaluation(
+        run_dir, model, device, split="test", out_dirname="test",
+        metadata=metadata, batch_size=batch_size, num_workers=num_workers,
+    )
+
+    run_dir_rel = _relative_run_dir(run_dir, repo_root)
+    log_path = repo_root / TEST_ACCESS_LOG_RELPATH
     _append_log_row(
         log_path,
         {
@@ -173,7 +267,7 @@ def run_final_test(
             "model_name": metadata.get("model_name"),
             "lr": metadata.get("lr"),
             "seed": metadata.get("seed"),
-            "best_pt_sha256": actual_best_sha256,
+            "best_pt_sha256": best_pt_sha256,
             "git_commit": metadata.get("git_commit"),
             "utc_timestamp": datetime.now(timezone.utc).isoformat(),
             "git_user_name": _git_user_name(repo_root),
@@ -183,31 +277,22 @@ def run_final_test(
     return metrics
 
 
-def _instantiate_model(model_class_spec: str):
-    import importlib
-
-    module_name, class_name = model_class_spec.split(":")
-    module = importlib.import_module(module_name)
-    return getattr(module, class_name)()
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True, type=Path)
     parser.add_argument("--confirm-final-test", action="store_true")
-    parser.add_argument("--model-class", required=True, help="module:ClassName, no-arg constructor")
+    parser.add_argument("--rehearsal", action="store_true")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
 
-    model = _instantiate_model(args.model_class)
     device = select_device(args.device)
     metrics = run_final_test(
         args.run_dir,
-        model,
         confirm_final_test=args.confirm_final_test,
         device=device,
+        rehearsal=args.rehearsal,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
     )

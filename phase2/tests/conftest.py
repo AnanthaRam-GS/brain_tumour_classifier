@@ -115,6 +115,7 @@ def _build_fake_repo(tmp_path, specs):
     shutil.copy(real_contract_dir / "input.yaml", contract_dir / "input.yaml")
     shutil.copy(real_contract_dir / "augmentation.yaml", contract_dir / "augmentation.yaml")
     shutil.copy(real_contract_dir / "training.yaml", contract_dir / "training.yaml")
+    shutil.copy(real_contract_dir / "evaluation.yaml", contract_dir / "evaluation.yaml")
 
     return manifest
 
@@ -142,12 +143,32 @@ def _git(args, cwd):
 
 
 @pytest.fixture
+def git_fake_repo(fake_repo):
+    """fake_repo plus a real, minimal, clean git repo around it (phase2/runs/
+    gitignored) -- for CLIs that check git state (cli/train.py, cli/freeze.py,
+    cli/final_test.py) but don't need a pre-trained run. Yields
+    (tmp_path, manifest, specs)."""
+
+    tmp_path, manifest, specs = fake_repo
+    (tmp_path / ".gitignore").write_text("phase2/runs/\n")
+    _git(["init"], cwd=tmp_path)
+    _git(["config", "user.email", "test@example.com"], cwd=tmp_path)
+    _git(["config", "user.name", "Test User"], cwd=tmp_path)
+    _git(["add", "-A"], cwd=tmp_path)
+    _git(["commit", "-m", "init"], cwd=tmp_path)
+    return tmp_path, manifest, specs
+
+
+@pytest.fixture
 def trained_run(fake_repo):
-    """A real (minimal) git repo around the fake_repo fixture, with one toy
-    model trained to a conformant run_dir under phase2/runs/ (gitignored, so
-    the working tree reads as clean even after writing checkpoints) --
-    for cli/evaluate.py, cli/freeze.py, cli/final_test.py tests.
-    Yields (tmp_path, run_dir, model, device)."""
+    """A real (minimal) git repo around the fake_repo fixture, with the
+    registered "tiny_cnn" model trained to a conformant run_dir under
+    phase2/runs/ (gitignored, so the working tree reads as clean even after
+    writing checkpoints) at its canonical run_dir_for() location -- for
+    cli/evaluate.py, cli/freeze.py, cli/final_test.py, cli/select_lr.py
+    tests. The model MUST be registry-known (not an ad-hoc toy class),
+    since evaluate.py/final_test.py rebuild it via
+    build_model(metadata.model_name). Yields (tmp_path, run_dir, model, device)."""
 
     import torch
 
@@ -155,9 +176,10 @@ def trained_run(fake_repo):
     from btdl.data.class_weights import compute_class_weights
     from btdl.data.dataset import RoiDataset
     from btdl.data.loader import make_loader
+    from btdl.models.registry import build_model
+    from btdl.runs import run_dir_for
     from btdl.training.device import select_device
     from btdl.training.trainer import fit
-    from tests.toy_training import ToyModel
 
     tmp_path, manifest, specs = fake_repo
 
@@ -177,10 +199,12 @@ def trained_run(fake_repo):
 
     class_weights = compute_class_weights(train_ds)
     torch.manual_seed(0)
-    model = ToyModel()
+    model = build_model("tiny_cnn", pretrained=False)
     device = select_device("cpu")
     cfg = config.load_contract("training")  # the REAL, unmodified contract -> conformant
-    run_dir = tmp_path / "phase2" / "runs" / "run1"
+    lr = cfg["lr_grid"][0]
+    seed = cfg["grid_seed"]
+    run_dir = run_dir_for("tiny_cnn", lr, seed, smoke=False)
     fit(
         model,
         train_loader=train_loader,
@@ -188,10 +212,11 @@ def trained_run(fake_repo):
         val_loader=val_loader,
         class_weights=class_weights,
         cfg=cfg,
-        lr=cfg["lr_grid"][0],
-        seed=42,
+        lr=lr,
+        seed=seed,
         run_dir=run_dir,
         device=device,
+        model_name="tiny_cnn",
     )
 
     return tmp_path, run_dir, model, device

@@ -1,23 +1,31 @@
-"""python -m btdl.cli.evaluate --run-dir R --split val --model-class pkg.mod:ClassName
+"""python -m btdl.cli.evaluate --run-dir R --split val
 
-Loads best.pt (strict contract), predicts on val, and writes R/eval/val/ via
-write_evaluation + plots. --split test is refused -- use cli/final_test.py,
-which is gated (requires a frozen checkpoint and logs test access).
+Rebuilds the model via the registry from metadata.json's model_name
+(pretrained=False -- weights come from best.pt, not from torchvision),
+loads best.pt (strict contract), predicts on val, and writes R/eval/val/
+via write_evaluation + plots. --split test is refused -- use
+cli/final_test.py, which is gated (requires a frozen checkpoint and logs
+test access).
 
-No model registry exists yet (a later prompt adds one): --model-class names
-a no-arg-constructor class (module:ClassName) to instantiate for now.
+On the val split, also checks reload equivalence (C8): the freshly
+reloaded best.pt's val probabilities must match the val_predictions.csv
+saved at the best epoch during training, within
+configs/contract/evaluation.yaml's reload_equivalence_atol. The max abs
+diff is recorded in metrics.json as reload_max_abs_diff.
 """
 
 import argparse
-import importlib
 import json
 from pathlib import Path
 
+from btdl import config
 from btdl.data.dataset import RoiDataset
 from btdl.data.loader import make_loader
 from btdl.evaluation.plots import plot_confusion_matrix, plot_roc_curves, plot_training_curves
 from btdl.evaluation.predict import predict
+from btdl.evaluation.reload_check import ReloadEquivalenceError, compute_reload_max_abs_diff
 from btdl.evaluation.results import write_evaluation
+from btdl.models.registry import build_model
 from btdl.training.checkpointing import load_checkpoint
 from btdl.training.device import select_device
 
@@ -25,12 +33,10 @@ ALLOWED_SPLITS = ("val",)
 
 
 class EvaluateCliError(ValueError):
-    """Raised on a disallowed split or other evaluate-CLI misuse."""
+    """Raised on a disallowed split, reload-equivalence failure, or other misuse."""
 
 
-def run_evaluate(
-    run_dir, model, *, split: str, device, batch_size: int = 64, num_workers: int = 0
-) -> dict:
+def run_evaluate(run_dir, *, split: str, device, batch_size: int = 64, num_workers: int = 0) -> dict:
     if split == "test":
         raise EvaluateCliError(
             "split='test' is refused here -- use `python -m btdl.cli.final_test`, "
@@ -40,8 +46,14 @@ def run_evaluate(
         raise EvaluateCliError(f"split must be one of {ALLOWED_SPLITS} (or 'test', which is refused), got {split!r}")
 
     run_dir = Path(run_dir)
-    payload = load_checkpoint(run_dir / "best.pt", model, device=device, strict_contract=True)
-    metadata = payload["metadata"]
+    metadata_path = run_dir / "metadata.json"
+    if not metadata_path.is_file():
+        raise EvaluateCliError(f"metadata.json not found in {run_dir}")
+    with metadata_path.open() as handle:
+        metadata = json.load(handle)
+
+    model = build_model(metadata["model_name"], pretrained=False)
+    load_checkpoint(run_dir / "best.pt", model, device=device, strict_contract=True)
 
     dataset = RoiDataset(split, augment=False, seed=metadata.get("seed", 0))
     loader, _ = make_loader(
@@ -49,8 +61,19 @@ def run_evaluate(
     )
     predictions = predict(model, loader, device)
 
+    extra = {}
+    val_predictions_path = run_dir / "val_predictions.csv"
+    if split == "val" and val_predictions_path.is_file():
+        reload_max_abs_diff = compute_reload_max_abs_diff(predictions, val_predictions_path)
+        atol = config.load_contract("evaluation")["reload_equivalence_atol"]
+        if reload_max_abs_diff > atol:
+            raise ReloadEquivalenceError(
+                f"reload equivalence failed: max abs diff {reload_max_abs_diff} > atol {atol}"
+            )
+        extra["reload_max_abs_diff"] = reload_max_abs_diff
+
     out_dir = run_dir / "eval" / split
-    metrics = write_evaluation(out_dir, predictions=predictions, run_metadata=metadata, split=split)
+    metrics = write_evaluation(out_dir, predictions=predictions, run_metadata=metadata, split=split, extra=extra)
 
     plot_confusion_matrix(metrics["confusion_matrix"], out_dir)
     with (out_dir / "roc_curves.json").open() as handle:
@@ -63,31 +86,18 @@ def run_evaluate(
     return metrics
 
 
-def _instantiate_model(model_class_spec: str):
-    module_name, class_name = model_class_spec.split(":")
-    module = importlib.import_module(module_name)
-    return getattr(module, class_name)()
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True, type=Path)
     parser.add_argument("--split", required=True, choices=["val", "test"])
-    parser.add_argument("--model-class", required=True, help="module:ClassName, no-arg constructor")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
 
-    model = _instantiate_model(args.model_class)
     device = select_device(args.device)
     metrics = run_evaluate(
-        args.run_dir,
-        model,
-        split=args.split,
-        device=device,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
+        args.run_dir, split=args.split, device=device, batch_size=args.batch_size, num_workers=args.num_workers
     )
     summary = {k: v for k, v in metrics.items() if k not in ("confusion_matrix", "per_class")}
     print(json.dumps(summary, indent=2, sort_keys=True, default=str))
