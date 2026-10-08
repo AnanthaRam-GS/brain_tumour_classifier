@@ -287,5 +287,10 @@ def load_checkpoint(path, model, *, device, strict_contract: bool = True) -> dic
             current_hash,
         )
 
+    model.to(device)  # load_state_dict's copy_ keeps params on their PRIOR
+    # device regardless of the checkpoint's own device, so a model built
+    # fresh (e.g. via build_model(), always on CPU) must be moved explicitly
+    # -- load_checkpoint's contract is "model is ready to use on `device`"
+    # after this call, not just "weights are numerically correct".
     model.load_state_dict(payload["model_state_dict"])
     return payload

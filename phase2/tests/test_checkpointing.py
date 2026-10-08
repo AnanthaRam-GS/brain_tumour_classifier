@@ -223,6 +223,23 @@ def test_metadata_non_conformant_when_effective_cfg_deviates():
     assert batch_size_deviation["effective_value"] == 999
 
 
+def test_load_checkpoint_moves_model_to_requested_device(tmp_path):
+    # Regression test: load_checkpoint() must move `model` to `device` itself
+    # -- load_state_dict's copy_ leaves params on their PRIOR device
+    # regardless of the checkpoint's own device, so a model freshly built on
+    # CPU (e.g. via build_model()) stayed on CPU even when device="mps",
+    # causing a real cross-device RuntimeError in cli/evaluate.py the first
+    # time it ran on real MPS hardware. Exercised here on CPU (every target
+    # device, including "cpu", must satisfy the same postcondition).
+    model = _toy_model()
+    metadata = _toy_metadata(model)
+    save_best_checkpoint(tmp_path, model=model, metadata=metadata)
+
+    model2 = nn.Linear(10, 3)
+    load_checkpoint(tmp_path / "best.pt", model2, device="cpu")
+    assert next(model2.parameters()).device == torch.device("cpu")
+
+
 def test_metadata_records_effective_cfg_not_contract_values():
     model = _toy_model()
     contract_cfg = config.load_contract("training")
