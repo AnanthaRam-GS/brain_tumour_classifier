@@ -242,6 +242,47 @@ def load_contract(name):
     return _freeze(payload)
 
 
+_MODEL_CONFIG_ALLOWED_KEYS = {"name", "version", "weights_id", "reference_only", "description"}
+_MODEL_CONFIG_TYPES = {
+    "name": str,
+    "version": str,
+    "weights_id": (str, type(None)),
+    "reference_only": bool,
+    "description": str,
+}
+
+
+def load_model_config(name):
+    """Load configs/models/<name>.yaml with a STRICT key whitelist (no hyperparameters)."""
+
+    path = repo_root() / _PHASE2_DIR_NAME / "configs" / "models" / f"{name}.yaml"
+    if not path.is_file():
+        raise ValueError(f"model config file not found: {path}")
+    with path.open("r") as handle:
+        payload = yaml.safe_load(handle)
+    if not isinstance(payload, dict):
+        raise ValueError(f"model config {name!r} must parse to a mapping, got {type(payload).__name__}")
+
+    unknown_keys = set(payload.keys()) - _MODEL_CONFIG_ALLOWED_KEYS
+    if unknown_keys:
+        raise ValueError(
+            f"model config {name!r} has unknown keys (hyperparameters do not belong in a "
+            f"model config): {sorted(unknown_keys)}"
+        )
+    missing_keys = _MODEL_CONFIG_ALLOWED_KEYS - set(payload.keys())
+    if missing_keys:
+        raise ValueError(f"model config {name!r} is missing required keys: {sorted(missing_keys)}")
+
+    for key, expected_type in _MODEL_CONFIG_TYPES.items():
+        value = payload[key]
+        if not isinstance(value, expected_type):
+            raise ValueError(
+                f"model config {name!r} key {key!r} must be {expected_type}, got {type(value).__name__}: {value!r}"
+            )
+
+    return _freeze(payload)
+
+
 def contract_dir_sha256() -> str:
     """Deterministic SHA-256 over every file in configs/contract/.
 
