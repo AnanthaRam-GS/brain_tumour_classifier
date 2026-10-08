@@ -41,3 +41,11 @@ preprocessing, training, or evaluation code.
 Teammates: do not edit `configs/contract/` or
 `src/btdl/{data,preprocessing,training,evaluation}` without going through
 the decision-change process in `docs/DECISIONS.md`.
+
+## Implementing a model
+
+If you're adding one of the five architectures (AlexNet, VGG16,
+GoogLeNet, ResNet18, EfficientNet-B0), start at
+[`docs/TEAM_GUIDE.md`](docs/TEAM_GUIDE.md) -- it covers setup, what you
+may edit, the model implementation template, and the exact command
+sequence from a smoke run to exported results.
