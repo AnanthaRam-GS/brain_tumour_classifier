@@ -57,7 +57,19 @@ def _write_json(obj, path) -> None:
         handle.write("\n")
 
 
-def write_evaluation(out_dir, *, predictions, run_metadata: dict, split: str) -> dict:
+def write_evaluation(
+    out_dir,
+    *,
+    predictions,
+    run_metadata: dict,
+    split: str,
+    n_resamples: int = None,
+    bootstrap_seed: int = None,
+    alpha: float = None,
+) -> dict:
+    """n_resamples/bootstrap_seed/alpha default to configs/contract/evaluation.yaml's
+    bootstrap section; tests may pass smaller values explicitly for speed."""
+
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -65,12 +77,21 @@ def write_evaluation(out_dir, *, predictions, run_metadata: dict, split: str) ->
     geometry, tertiles = _load_geometry_and_tertiles(repo_root)
     geometry_by_id = dict(zip(geometry["sample_id"], geometry["crop_side"]))
 
+    evaluation_cfg = config.load_contract("evaluation")
+    if n_resamples is None:
+        n_resamples = evaluation_cfg["bootstrap"]["n_resamples"]
+    if bootstrap_seed is None:
+        bootstrap_seed = evaluation_cfg["bootstrap"]["seed"]
+    if alpha is None:
+        alpha = evaluation_cfg["bootstrap"]["alpha"]
+    results_schema_version = evaluation_cfg["results_schema_version"]
+
     full = full_metrics(predictions.y_true_idx, predictions.probs)
     roc_curves = full.pop("roc_curves")
 
     metrics_payload = dict(full)
     metrics_payload["split"] = split
-    metrics_payload["results_schema_version"] = RESULTS_SCHEMA_VERSION
+    metrics_payload["results_schema_version"] = results_schema_version
     metrics_payload["contract_conformant"] = run_metadata.get("contract_conformant")
     metrics_payload["run"] = {
         "model_name": run_metadata.get("model_name"),
@@ -114,10 +135,19 @@ def write_evaluation(out_dir, *, predictions, run_metadata: dict, split: str) ->
 
     _write_json(roc_curves, out_dir / "roc_curves.json")
 
-    bootstrap_result = patient_bootstrap(
-        predictions.y_true_idx, predictions.probs, np.asarray(predictions.patient_ids)
+    bootstrap_metrics = patient_bootstrap(
+        predictions.y_true_idx,
+        predictions.probs,
+        np.asarray(predictions.patient_ids),
+        n_resamples=n_resamples,
+        seed=bootstrap_seed,
+        alpha=alpha,
     )
-    _write_json(bootstrap_result, out_dir / "bootstrap_ci.json")
+    bootstrap_payload = {
+        "settings": {"n_resamples": n_resamples, "seed": bootstrap_seed, "alpha": alpha},
+        "metrics": bootstrap_metrics,
+    }
+    _write_json(bootstrap_payload, out_dir / "bootstrap_ci.json")
 
     stratified_result = stratified_report(predictions, geometry, tertiles)
     _write_json(stratified_result, out_dir / "stratified.json")
@@ -125,7 +155,11 @@ def write_evaluation(out_dir, *, predictions, run_metadata: dict, split: str) ->
     return metrics_payload
 
 
-def validate_evaluation_dir(path) -> None:
+def validate_evaluation_dir(path, require_contract: bool = False) -> None:
+    """require_contract=True also fails if the recorded bootstrap settings
+    (bootstrap_ci.json's "settings") differ from the current
+    configs/contract/evaluation.yaml."""
+
     path = Path(path)
 
     missing = [name for name in EVALUATION_FILES if not (path / name).is_file()]
@@ -180,11 +214,16 @@ def validate_evaluation_dir(path) -> None:
 
     with (path / "bootstrap_ci.json").open() as handle:
         bootstrap = json.load(handle)
-    if not bootstrap:
-        raise EvaluationValidationError("bootstrap_ci.json is empty")
-    for name, stats in bootstrap.items():
+    if not {"settings", "metrics"}.issubset(bootstrap.keys()):
+        raise EvaluationValidationError("bootstrap_ci.json missing 'settings' or 'metrics'")
+    bootstrap_settings = bootstrap["settings"]
+    if not {"n_resamples", "seed", "alpha"}.issubset(bootstrap_settings.keys()):
+        raise EvaluationValidationError("bootstrap_ci.json['settings'] missing n_resamples/seed/alpha")
+    if not bootstrap["metrics"]:
+        raise EvaluationValidationError("bootstrap_ci.json['metrics'] is empty")
+    for name, stats in bootstrap["metrics"].items():
         if not {"point", "ci_low", "ci_high", "n_valid"}.issubset(stats.keys()):
-            raise EvaluationValidationError(f"bootstrap_ci.json[{name!r}] missing required keys")
+            raise EvaluationValidationError(f"bootstrap_ci.json['metrics'][{name!r}] missing required keys")
 
     with (path / "stratified.json").open() as handle:
         stratified = json.load(handle)
@@ -194,3 +233,21 @@ def validate_evaluation_dir(path) -> None:
         raise EvaluationValidationError(
             f"stratified.json tertiles must be exactly {set(TERTILE_NAMES)}, got {set(stratified['tertiles'].keys())}"
         )
+
+    if require_contract:
+        evaluation_cfg = config.load_contract("evaluation")
+        expected_settings = {
+            "n_resamples": evaluation_cfg["bootstrap"]["n_resamples"],
+            "seed": evaluation_cfg["bootstrap"]["seed"],
+            "alpha": evaluation_cfg["bootstrap"]["alpha"],
+        }
+        if bootstrap_settings != expected_settings:
+            raise EvaluationValidationError(
+                f"bootstrap_ci.json['settings'] {bootstrap_settings} does not match the "
+                f"current evaluation contract {expected_settings}"
+            )
+        if metrics.get("results_schema_version") != evaluation_cfg["results_schema_version"]:
+            raise EvaluationValidationError(
+                f"metrics.json results_schema_version {metrics.get('results_schema_version')!r} "
+                f"does not match the contract {evaluation_cfg['results_schema_version']!r}"
+            )

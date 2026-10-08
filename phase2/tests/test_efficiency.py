@@ -69,3 +69,12 @@ def test_measure_inference_leaves_model_in_eval_mode():
     model.train()
     measure_inference(model, DEVICE, batch_sizes=(1,), warmup=1, iters=3)
     assert model.training is False
+
+
+def test_measure_inference_defaults_come_from_contract():
+    from btdl import config
+
+    evaluation_cfg = config.load_contract("evaluation")
+    model = _toy_cnn()
+    result = measure_inference(model, DEVICE)  # no explicit batch_sizes/warmup/iters
+    assert set(result.keys()) == set(evaluation_cfg["efficiency"]["batch_sizes"])

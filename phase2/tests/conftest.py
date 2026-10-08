@@ -115,6 +115,7 @@ def _build_fake_repo(tmp_path, specs):
     shutil.copy(real_contract_dir / "input.yaml", contract_dir / "input.yaml")
     shutil.copy(real_contract_dir / "augmentation.yaml", contract_dir / "augmentation.yaml")
     shutil.copy(real_contract_dir / "training.yaml", contract_dir / "training.yaml")
+    shutil.copy(real_contract_dir / "evaluation.yaml", contract_dir / "evaluation.yaml")
 
     return manifest
 

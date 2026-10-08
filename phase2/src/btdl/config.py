@@ -185,6 +185,20 @@ _SCHEMAS = {
         ("early_stopping.tie_break", str),
         ("selection", str),
     ],
+    "evaluation": [
+        ("contract_version", str),
+        ("results_schema_version", str),
+        ("bootstrap", dict),
+        ("bootstrap.n_resamples", int),
+        ("bootstrap.seed", int),
+        ("bootstrap.alpha", (int, float)),
+        ("efficiency", dict),
+        ("efficiency.batch_sizes", list),
+        ("efficiency.warmup", int),
+        ("efficiency.iters", int),
+        ("size_tertiles", str),
+        ("reload_equivalence_atol", (int, float)),
+    ],
 }
 
 

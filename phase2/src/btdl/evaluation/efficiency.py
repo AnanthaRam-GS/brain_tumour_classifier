@@ -1,10 +1,10 @@
-"""Parameter counting and inference timing. CLI wiring comes later with the
-model registry; this module and its tests stand alone for now."""
+"""Parameter counting and inference timing."""
 
 import time
 
 import torch
 
+from btdl import config
 from btdl.training.device import describe_device
 
 
@@ -21,16 +21,25 @@ def _synchronize(device: torch.device) -> None:
         torch.mps.synchronize()
 
 
-def measure_inference(
-    model, device, *, batch_sizes: tuple = (1, 32), warmup: int = 10, iters: int = 50
-) -> dict:
+def measure_inference(model, device, *, batch_sizes=None, warmup: int = None, iters: int = None) -> dict:
     """Per batch size: median_ms_per_batch, p90_ms_per_batch, ms_per_image, device.
+
+    batch_sizes/warmup/iters default to configs/contract/evaluation.yaml's
+    efficiency section; tests may pass smaller values explicitly.
 
     Eval mode, no_grad, random 3x224x224 input, with explicit device
     synchronization around each timed call (required for CUDA/MPS, whose
     kernel launches are asynchronous -- without it the wall-clock timing
     would measure launch overhead, not actual execution).
     """
+
+    evaluation_cfg = config.load_contract("evaluation")
+    if batch_sizes is None:
+        batch_sizes = evaluation_cfg["efficiency"]["batch_sizes"]
+    if warmup is None:
+        warmup = evaluation_cfg["efficiency"]["warmup"]
+    if iters is None:
+        iters = evaluation_cfg["efficiency"]["iters"]
 
     model = model.to(device)
     model.eval()

@@ -63,6 +63,7 @@ def test_one_full_train_epoch_iterates_without_error():
     assert n_seen == len(ds)
 
 
+@pytest.mark.slow
 def test_worker_equivalence_under_default_start_method_on_real_cache():
     """No monkeypatching, no forced multiprocessing_context: this exercises
     the platform's actual default start method (spawn on macOS), against
@@ -91,6 +92,7 @@ def test_worker_equivalence_under_default_start_method_on_real_cache():
     print(f"\ndefault multiprocessing start method on this machine: {default_method}")
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("num_workers", [0, 2, 4])
 def test_throughput(num_workers):
     ds = RoiDataset("train", augment=True, seed=42)

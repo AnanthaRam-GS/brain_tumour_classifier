@@ -1,0 +1,16 @@
+contract_version: "1.0.0"
+results_schema_version: "1.0.0"
+
+bootstrap:
+  n_resamples: 2000
+  seed: 0
+  alpha: 0.05
+
+efficiency:
+  batch_sizes: [1, 32]
+  warmup: 10
+  iters: 50
+
+size_tertiles: phase2/artifacts/contract/size_tertiles.json
+
+reload_equivalence_atol: 1.0e-5
