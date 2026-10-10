@@ -332,6 +332,43 @@ def load_model_config(name):
     return _freeze(payload)
 
 
+_STUDY_RELPATH = Path(_PHASE2_DIR_NAME) / "configs" / "study.yaml"
+_STUDY_SCHEMA = (
+    ("study_version", str),
+    ("models", list),
+    ("baseline_reference", str),
+)
+
+
+def load_study():
+    """Load phase2/configs/study.yaml, validate its schema, return an immutable mapping.
+
+    Deliberately NOT under configs/contract/ (it names which architectures
+    are in scope for the comparison, not a data/training/evaluation
+    contract) -- but it IS part of the locked foundation (see cli/lock.py).
+    """
+
+    path = repo_root() / _STUDY_RELPATH
+    if not path.is_file():
+        raise ValueError(f"study file not found: {path}")
+    with path.open("r") as handle:
+        payload = yaml.safe_load(handle)
+    if not isinstance(payload, dict):
+        raise ValueError(f"study.yaml must parse to a mapping, got {type(payload).__name__}")
+
+    for key, expected_type in _STUDY_SCHEMA:
+        if key not in payload:
+            raise ValueError(f"study.yaml is missing required key {key!r}")
+        if not isinstance(payload[key], expected_type):
+            raise ValueError(
+                f"study.yaml key {key!r} must be {expected_type.__name__}, got {type(payload[key]).__name__}"
+            )
+    if not all(isinstance(item, str) for item in payload["models"]):
+        raise ValueError("study.yaml 'models' must be a list of strings")
+
+    return _freeze(payload)
+
+
 def contract_dir_sha256() -> str:
     """Deterministic SHA-256 over every file in configs/contract/.
 

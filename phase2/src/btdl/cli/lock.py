@@ -2,11 +2,16 @@
 
 The foundation lock (phase2/artifacts/contract/foundation_lock.json,
 tracked) records a SHA-256 per file in the locked foundation: every
-configs/contract/*.yaml file, src/btdl/{config.py, contracts.py, runs.py},
-every .py file under src/btdl/{data, preprocessing, training, evaluation,
-cli}/, and src/btdl/models/{registry.py, model_spec.py,
-torchvision_common.py} -- plus the overall contract_dir_sha256 and a lock
-version.
+configs/contract/*.yaml file, configs/study.yaml, src/btdl/{config.py,
+contracts.py, runs.py}, every .py file under src/btdl/{data,
+preprocessing, training, evaluation, cli}/, and src/btdl/models/
+{registry.py, model_spec.py, torchvision_common.py} -- plus the overall
+contract_dir_sha256 and a lock version.
+
+configs/study.yaml (the list of architectures in the comparison study, D18)
+is locked but deliberately NOT part of configs/contract/ -- it is not a
+data/training/evaluation contract, so changing it does not require a
+CONTRACT_VERSION bump, only a lock regeneration.
 
 Deliberately NOT locked: src/btdl/models/catalog.py and any
 src/btdl/models/<model>.py file, so a teammate can register a new
@@ -25,7 +30,7 @@ from pathlib import Path
 
 from btdl import config
 
-LOCK_VERSION = "1.0.0"
+LOCK_VERSION = "1.1.0"
 LOCK_RELPATH = "phase2/artifacts/contract/foundation_lock.json"
 
 _BTDL_SRC_RELPATH = "phase2/src/btdl"
@@ -33,6 +38,7 @@ _CONTRACT_RELPATH = "phase2/configs/contract"
 _TOP_LEVEL_LOCKED_FILES = ("config.py", "contracts.py", "runs.py")
 _LOCKED_SUBDIRS = ("data", "preprocessing", "training", "evaluation", "cli")
 _MODELS_LOCKED_FILES = ("registry.py", "model_spec.py", "torchvision_common.py")
+_ADDITIONAL_LOCKED_FILES = ("phase2/configs/study.yaml",)
 
 
 class FoundationLockError(ValueError):
@@ -70,6 +76,10 @@ def locked_relpaths(repo_root=None) -> list:
     for name in _MODELS_LOCKED_FILES:
         if (btdl_src / "models" / name).is_file():
             rels.add(f"{_BTDL_SRC_RELPATH}/models/{name}")
+
+    for relpath in _ADDITIONAL_LOCKED_FILES:
+        if (repo_root / relpath).is_file():
+            rels.add(relpath)
 
     return sorted(rels)
 

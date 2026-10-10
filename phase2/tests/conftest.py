@@ -117,6 +117,17 @@ def _build_fake_repo(tmp_path, specs):
     shutil.copy(real_contract_dir / "training.yaml", contract_dir / "training.yaml")
     shutil.copy(real_contract_dir / "evaluation.yaml", contract_dir / "evaluation.yaml")
 
+    # A single-model study (D18) covering "tiny_cnn" -- the only model most
+    # fake-repo tests ever use (via _enable_real_mode). Tests that need a
+    # different study membership write their own phase2/configs/study.yaml.
+    study_yaml = {
+        "study_version": "1.0.0",
+        "models": ["tiny_cnn"],
+        "baseline_reference": "reports/experiments/fake_baseline/experiment_summary.json",
+    }
+    with (tmp_path / "phase2" / "configs" / "study.yaml").open("w") as handle:
+        yaml.safe_dump(study_yaml, handle)
+
     return manifest
 
 

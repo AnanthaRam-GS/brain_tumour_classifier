@@ -1,0 +1,8 @@
+study_version: "1.0.0"
+models:
+  - alexnet
+  - vgg16
+  - googlenet
+  - resnet18
+  - efficientnet_b0
+baseline_reference: reports/experiments/glcm_xgboost_v2/experiment_summary.json
