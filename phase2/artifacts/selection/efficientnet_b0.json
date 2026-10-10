@@ -1,0 +1,33 @@
+{
+  "candidates": [
+    {
+      "best_epoch": 9,
+      "best_pt_sha256": "625e7e392a00857cf6f3ebad32d551229287e4139bc4e658338478efb80d0e08",
+      "best_val_loss": 0.22539815306663513,
+      "best_val_macro_f1": 0.9320060339579411,
+      "lr": 0.0001,
+      "run_dir": "phase2/runs/efficientnet_b0/lr1e-04_seed42"
+    },
+    {
+      "best_epoch": 22,
+      "best_pt_sha256": "0b9b58e1c3695f032ea94b73f3f4ab5c04fea3b30fa70d596e2dbd4612c38aa4",
+      "best_val_loss": 0.21157322824001312,
+      "best_val_macro_f1": 0.9580165774498149,
+      "lr": 0.0003,
+      "run_dir": "phase2/runs/efficientnet_b0/lr3e-04_seed42"
+    },
+    {
+      "best_epoch": 7,
+      "best_pt_sha256": "54e00f52547b00c291f7bf262599b2f949102a325445d52f2acce0ffa1d2a5b3",
+      "best_val_loss": 0.22422689199447632,
+      "best_val_macro_f1": 0.9361612454332574,
+      "lr": 0.001,
+      "run_dir": "phase2/runs/efficientnet_b0/lr1e-03_seed42"
+    }
+  ],
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "git_commit": "fa031b35b3ed767ce0308de2d2ada20405463ed4",
+  "model_name": "efficientnet_b0",
+  "selected_lr": 0.0003,
+  "selected_run_dir": "phase2/runs/efficientnet_b0/lr3e-04_seed42"
+}

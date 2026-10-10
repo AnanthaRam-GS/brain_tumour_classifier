@@ -23,6 +23,10 @@ experimentation:
 - evaluation (`src/btdl/evaluation/`, `cli/evaluate.py`,
   `cli/final_test.py`)
 - test-set access policy (D13, D17 in `DECISIONS.md`)
+- the simultaneous-unblinding order (D18 in `DECISIONS.md`) — see §6:
+  `final_test` (without `--rehearsal`) runs for any model only after the
+  foundation owner announces unblinding, once ALL FIVE architectures have
+  frozen their final runs
 
 `python -m btdl.cli.lock --check` fails loudly (and CI/your own test run
 will fail) if any of this changes without a regenerated, reviewed lock —
@@ -222,15 +226,35 @@ cd phase2
 RUN=runs/<your_model>/lr<selected_lr>_seed<seed>
 .venv/bin/python -m btdl.cli.freeze     --run-dir $RUN
 .venv/bin/python -m btdl.cli.efficiency --run-dir $RUN
+
+# 6. STOP HERE (D18). Do NOT run final_test yet, even with --confirm-final-test
+#    and WITHOUT --rehearsal. Notify the foundation owner that your three
+#    final runs are frozen. You may still run a REHEARSAL at any time --
+#    it never touches the test split:
+.venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test --rehearsal
+
+# 7. Wait for the foundation owner to announce unblinding (D18: ALL FIVE
+#    architectures must have frozen their final runs first). Only then:
 .venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test
 .venv/bin/python -m btdl.cli.export_results --run-dir $RUN
 ```
 
-**The test split is used exactly once per final run, by `final_test`.**
-Never re-run `final_test` on the same `run_dir` (it refuses a repeat run
-anyway, via `artifacts/test_access_log.csv`), and never retrain or retune
-after seeing test results — that silently turns the test split into a
-validation set.
+**The test split is used exactly once per final run, by `final_test`
+(without `--rehearsal`).** Never re-run `final_test` on the same `run_dir`
+(it refuses a repeat run anyway, via `artifacts/test_access_log.csv`), and
+never retrain or retune after seeing test results — that silently turns
+the test split into a validation set.
+
+**D18 — simultaneous unblinding:** step 7 (the real `final_test`, and
+`export_results`) happens only after the foundation owner announces
+unblinding to everyone, which happens only once all five architectures
+have completed steps 1–6. Running `final_test` for your model before
+another model is even frozen would let your result shape decisions about
+models still in progress -- exactly what the test gate (D13/D17) exists
+to prevent. The efficiency numbers used in the final cross-model
+comparison are re-measured centrally by the foundation owner on one
+machine; your own `efficiency.json` from step 5 is kept as provenance but
+is not what gets compared.
 
 ## 7. Git workflow
 
