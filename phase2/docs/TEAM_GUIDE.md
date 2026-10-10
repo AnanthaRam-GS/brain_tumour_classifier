@@ -226,17 +226,27 @@ cd phase2
 RUN=runs/<your_model>/lr<selected_lr>_seed<seed>
 .venv/bin/python -m btdl.cli.freeze     --run-dir $RUN
 .venv/bin/python -m btdl.cli.efficiency --run-dir $RUN
-
-# 6. STOP HERE (D18). Do NOT run final_test yet, even with --confirm-final-test
-#    and WITHOUT --rehearsal. Notify the foundation owner that your three
-#    final runs are frozen. You may still run a REHEARSAL at any time --
-#    it never touches the test split:
 .venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test --rehearsal
 
-# 7. Wait for the foundation owner to announce unblinding (D18: ALL FIVE
-#    architectures must have frozen their final runs first). Only then:
+# 6. Once all three final runs are frozen + rehearsed, register them (D18)
+#    and open a PR. This is the ONLY thing you commit before unblinding.
+.venv/bin/python -m btdl.cli.register_frozen --model <your_model>
+git add artifacts/selection/<your_model>.json artifacts/frozen/<your_model>.json
+git commit -m "results(<your_model>): register frozen final runs"
+#    Open a PR with exactly these two files. STOP HERE -- do NOT run
+#    final_test without --rehearsal yet; it is now also enforced in code
+#    (see "D18 enforcement" below) and will refuse until unblinding_status
+#    is READY, not just ask nicely.
+
+# 7. Wait for the foundation owner to announce unblinding. Then:
+git fetch origin && git switch main && git pull
+.venv/bin/python -m btdl.cli.unblinding_status   # must print READY, exit 0
+git switch <your-branch> && git merge main        # pulls in every model's registration
+
+# 8. Only now, for EACH of the three final runs:
 .venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test
 .venv/bin/python -m btdl.cli.export_results --run-dir $RUN
+#    Open a PR with artifacts/results/<your_model>/.
 ```
 
 **The test split is used exactly once per final run, by `final_test`
@@ -245,16 +255,37 @@ RUN=runs/<your_model>/lr<selected_lr>_seed<seed>
 never retrain or retune after seeing test results — that silently turns
 the test split into a validation set.
 
-**D18 — simultaneous unblinding:** step 7 (the real `final_test`, and
-`export_results`) happens only after the foundation owner announces
-unblinding to everyone, which happens only once all five architectures
-have completed steps 1–6. Running `final_test` for your model before
-another model is even frozen would let your result shape decisions about
-models still in progress -- exactly what the test gate (D13/D17) exists
-to prevent. The efficiency numbers used in the final cross-model
-comparison are re-measured centrally by the foundation owner on one
-machine; your own `efficiency.json` from step 5 is kept as provenance but
-is not what gets compared.
+**D18 — simultaneous unblinding (enforced in code).** `final_test`
+(without `--rehearsal`) now actively refuses to run unless: (a) your
+model has a frozen registration (`artifacts/frozen/<your_model>.json`,
+written by step 6) whose recorded `best_pt_sha256` matches the exact
+checkpoint being tested, and (b) `python -m btdl.cli.unblinding_status`
+reports READY -- which requires EVERY study model to have registered all
+three final seeds against the current contract. `--rehearsal` is never
+affected by any of this (it never touches the test split). This means you
+genuinely cannot jump ahead of the other four architectures by accident;
+the tool refuses, it doesn't just ask you not to. `export_results`
+independently re-checks the same registration before copying anything.
+
+The efficiency numbers used in the final cross-model comparison are
+re-measured centrally by the foundation owner, for all five architectures
+together on one machine (`cli/efficiency_central.py`); your own
+`efficiency.json` from step 5 is kept as provenance but is not what gets
+compared.
+
+**Getting these tools.** If your branch predates this foundation update,
+fetch and merge the `phase2-foundation-v1.1` tag to pick up
+`register_frozen`/`unblinding_status`/the `final_test`/`export_results`
+D18 gates/`efficiency_central` without losing your work:
+
+```bash
+git fetch --tags
+git merge phase2-foundation-v1.1
+```
+
+Your existing frozen runs stay valid -- `configs/contract/` did not
+change (`contract_dir_sha256` is identical), so nothing needs retraining;
+you only need to run `register_frozen` (step 6) once you have it.
 
 ## 7. Git workflow
 

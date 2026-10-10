@@ -360,3 +360,56 @@ Fixed:
 - Phase 1 suite: **234 passed**, 17.82s
 
 All green on a clean tree immediately before this fix's commit.
+
+## 9. D18 enforcement in code (branch `phase2/unblinding-tools`)
+
+D18 (simultaneous unblinding, §7/§8) is now enforced in code rather than
+only by convention, without changing `configs/contract/`
+(`contract_dir_sha256` unchanged, §1):
+
+- **`configs/study.yaml`** (schema-validated via `config.load_study()`,
+  part of the foundation lock but NOT of `configs/contract/`): names the
+  five architectures in scope and the Phase 1 baseline reference.
+- **`cli/register_frozen.py`**: writes TRACKED, provenance-only
+  `artifacts/frozen/<model>.json` once every `final_seed`'s run at the
+  selected lr is frozen, conformant, clean, and has a passing rehearsal.
+  Contains no test information of any kind.
+- **`cli/unblinding_status.py`**: READY (exit 0) only when every study
+  model has a registration covering every `final_seed` with a
+  `contract_dir_sha256` matching the current contract; NOT READY (exit 1)
+  otherwise.
+- **`cli/final_test.py`** (real mode only -- `--rehearsal` unaffected):
+  refuses unless this run's model has a frozen registration whose
+  recorded sha256 for this seed matches the checkpoint being tested, AND
+  `unblinding_status` is READY.
+- **`cli/export_results.py`**: independently re-checks the same
+  registration, refusing on a sha mismatch.
+- **`cli/efficiency_central.py`**: measures every study model that is
+  registered in the catalog (skipping and listing the rest), on one
+  device in one process, writing TRACKED
+  `artifacts/comparison/efficiency_<device>.json`; `--overwrite` required
+  to replace an existing measurement.
+
+**Foundation lock**: regenerated, `lock_version` bumped **1.0.0 → 1.1.0**
+(now also covers `configs/study.yaml` and the four new/changed `cli/`
+modules above). `contract_dir_sha256` is unchanged.
+
+**efficientnet_b0's three final runs (seeds 42/43/44, lr=3e-4) are now
+registered frozen** (`artifacts/frozen/efficientnet_b0.json`).
+`unblinding_status` correctly reports **NOT READY**: AlexNet, VGG16,
+GoogLeNet, and ResNet18 are not yet registered.
+
+**Central efficiency smoke-tested** (CPU and MPS, on this machine, for
+efficientnet_b0 -- the only study model currently in the catalog); the
+measurement files were deliberately NOT committed (per D18, the real
+comparison measurement happens once all five architectures are
+registered) -- deleted after inspection.
+
+### Updated full test counts (as of this enforcement work)
+
+- Phase 2 full suite (including slow + network): **512 passed**, 550.06s
+- Phase 2 fast (`-m "not slow"`): **460 passed**, 52 deselected, 81.66s
+- Phase 1 suite: **234 passed**, 17.90s
+
+All green on a clean tree immediately before this work's final commit.
+`test_access_log.csv` remained header-only throughout.
