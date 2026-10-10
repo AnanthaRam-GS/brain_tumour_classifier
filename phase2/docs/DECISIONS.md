@@ -205,6 +205,30 @@ the five final models.
 debugged repeatedly during development without spending "looks at the test
 set" budget on anything other than the five final, frozen models.
 
+## D18 — Simultaneous unblinding
+
+**Decision:** `final_test` is run for any model only after ALL five
+architectures have completed their protocol runs (grid search, selection,
+final seeds) and frozen their final runs; the foundation owner announces
+unblinding, and all five final tests are then run without further changes
+to any model. Efficiency figures used in the cross-model comparison are
+measured centrally, on one machine, for all five architectures (CPU and
+the owner's accelerator); the per-run `efficiency.json` files produced
+during each model's own development remain as provenance but are not the
+comparison's source of truth.
+
+**Rationale:** No test result can influence any modelling decision for any
+architecture (the whole point of D13/D17's test gate) -- running
+`final_test` for one model before another is even frozen would let that
+earlier result shape later architecture choices, defeating the gate.
+Measuring efficiency centrally, on one machine, makes the five
+architectures' efficiency numbers directly comparable; per-developer
+`efficiency.json` files vary by whatever machine/load each person trained
+on and are not comparable to each other.
+
+This is a **process decision**: no contract file changed, and
+`CONTRACT_VERSION` stays `1.0.0`.
+
 ---
 
 ## Changing a decision
@@ -218,3 +242,6 @@ Any change to a decision in this document requires:
 ## Changelog
 
 - 2026-10-08 — Initial decision record (D1–D17), contract version 1.0.0.
+- 2026-10-10 — Added D18 (simultaneous unblinding, central efficiency
+  measurement). Process decision only -- no contract file changed,
+  `CONTRACT_VERSION` stays 1.0.0.
