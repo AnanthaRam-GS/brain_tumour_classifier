@@ -31,4 +31,5 @@ testpaths = ["tests"]
 markers = [
     "data: requires the real NPZ dataset on disk; skipped automatically if absent",
     "slow: exceeds ~5s (real-data full passes, default-size bootstrap, trainer convergence); excluded via -m \"not slow\" for fast iteration",
+    "network: downloads pretrained ImageNet weights from the internet; excluded via -m \"not network\" when offline",
 ]
