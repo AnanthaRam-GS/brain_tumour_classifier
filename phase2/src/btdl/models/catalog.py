@@ -11,6 +11,7 @@ machinery.
 
 from btdl.models.model_spec import ModelSpec
 from btdl.models.tiny_cnn import build_tiny_cnn
+from btdl.models.vgg16 import build_vgg16
 
 MODEL_REGISTRY: dict = {
     "tiny_cnn": ModelSpec(
@@ -21,5 +22,13 @@ MODEL_REGISTRY: dict = {
         reference_only=True,
         description="Small 4-conv-block reference CNN; no pretrained weights; "
         "for exercising the training/evaluation pipeline end-to-end.",
+    ),
+    "vgg16": ModelSpec(
+        name="vgg16",
+        version="1.0.0",
+        builder=build_vgg16,
+        weights_id="VGG16_Weights.IMAGENET1K_V1",
+        reference_only=False,
+        description="VGG16, torchvision ImageNet-pretrained, full fine-tuning, 3-class head.",
     ),
 }
