@@ -36,6 +36,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from btdl import config
+from btdl.cli.register_frozen import FROZEN_REGISTRATION_DIR_RELPATH
+from btdl.cli.unblinding_status import compute_status
 from btdl.data.dataset import RoiDataset
 from btdl.data.loader import make_loader
 from btdl.evaluation.plots import plot_confusion_matrix, plot_roc_curves, plot_training_curves
@@ -173,6 +175,45 @@ def _check_real_mode_gates(run_dir, metadata, repo_root):
     if _already_logged(log_path, run_dir_rel):
         raise FinalTestError(
             f"{run_dir_rel} already has a test-access log entry -- final_test may run only once per run"
+        )
+
+    # D18: simultaneous unblinding. This run's model must be registered
+    # frozen (cli/register_frozen.py) for the EXACT checkpoint being used,
+    # and every study model must be similarly registered before ANY real
+    # final_test may run -- otherwise one model's test result could shape
+    # decisions still being made about another model still in progress.
+    frozen_registration_path = repo_root / FROZEN_REGISTRATION_DIR_RELPATH / f"{metadata['model_name']}.json"
+    if not frozen_registration_path.is_file():
+        raise FinalTestError(
+            f"refusing: no frozen registration at {frozen_registration_path} -- run "
+            "`python -m btdl.cli.register_frozen` first"
+        )
+    with frozen_registration_path.open() as handle:
+        registration = json.load(handle)
+    registered_sha = next(
+        (entry.get("best_pt_sha256") for entry in registration.get("seeds", []) if entry.get("seed") == metadata.get("seed")),
+        None,
+    )
+    if registered_sha is None:
+        raise FinalTestError(
+            f"refusing: seed {metadata.get('seed')} is not registered in {frozen_registration_path}"
+        )
+    actual_sha256 = _file_sha256(run_dir / "best.pt")
+    if actual_sha256 != registered_sha:
+        raise FinalTestError(
+            f"refusing: this run's best.pt sha256 ({actual_sha256}) does not match the frozen "
+            f"registration for seed {metadata.get('seed')} ({registered_sha}) -- the checkpoint changed "
+            "since registration; re-run register_frozen (D18 requires every architecture to register the "
+            "SAME checkpoint that gets final-tested)"
+        )
+
+    status = compute_status()
+    if not status["ready"]:
+        not_ready = [row["model_name"] for row in status["models"] if not row["ready"]]
+        raise FinalTestError(
+            f"refusing: unblinding_status is NOT READY -- model(s) not yet registered frozen: {not_ready} "
+            "(D18: final_test may not run for any model until ALL study models are frozen and the "
+            "foundation owner announces unblinding)"
         )
 
 

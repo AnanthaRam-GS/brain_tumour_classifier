@@ -8,6 +8,7 @@ import pytest
 from btdl import config
 from btdl.cli.final_test import FinalTestError, run_final_test
 from btdl.cli.freeze import run_freeze
+from btdl.cli.register_frozen import run_register_frozen
 from btdl.evaluation.reload_check import ReloadEquivalenceError
 from btdl.evaluation.results import validate_evaluation_dir
 from btdl.models.registry import MODEL_REGISTRY
@@ -37,6 +38,50 @@ def _write_matching_selection(tmp_path, run_dir, model_name="tiny_cnn"):
     selection_path.write_text(json.dumps({"selected_lr": metadata["lr"]}))
     subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", "add selection"], cwd=tmp_path, check=True, capture_output=True)
+
+
+def _make_unblinding_ready(tmp_path, run_dir, device, model_name="tiny_cnn"):
+    """D18: fake_repo's study.yaml already covers only `model_name`
+    (conftest.py), so registering it frozen alone makes unblinding_status
+    READY. register_frozen requires a frozen+rehearsed run at the selected
+    lr for EVERY seed in final_seeds (42/43/44 for the real contract) --
+    rather than training two more models, the single trained run is
+    duplicated filesystem-wise to the other seeds' run_dirs (register_frozen
+    only reads metadata.json/FROZEN.json/eval/rehearsal_val/, never best.pt's
+    internal contents beyond its sha256, which a verbatim copy preserves)."""
+
+    import shutil
+
+    from btdl.runs import run_dir_for
+
+    rehearsal_dir = run_dir / "eval" / "rehearsal_val"
+    if not rehearsal_dir.is_dir():
+        run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=True, batch_size=2)
+
+    with (run_dir / "metadata.json").open() as handle:
+        metadata = json.load(handle)
+    lr = metadata["lr"]
+    own_seed = metadata["seed"]
+
+    training_cfg = config.load_contract("training")
+    for seed in training_cfg["final_seeds"]:
+        if seed == own_seed:
+            continue
+        target_dir = run_dir_for(model_name, lr, seed, smoke=False)
+        if target_dir.exists():
+            continue
+        shutil.copytree(run_dir, target_dir)
+        meta_path = target_dir / "metadata.json"
+        with meta_path.open() as handle:
+            meta = json.load(handle)
+        meta["seed"] = seed
+        with meta_path.open("w") as handle:
+            json.dump(meta, handle, indent=2, sort_keys=True)
+
+    run_register_frozen(model_name)
+
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "register frozen"], cwd=tmp_path, check=True, capture_output=True)
 
 
 # ---- base gates (apply in both real and rehearsal mode) -----------------------------
@@ -169,6 +214,7 @@ def test_real_mode_succeeds_and_appends_one_log_row(trained_run, monkeypatch):
     tmp_path, run_dir, model, device = _frozen_run(trained_run)
     _enable_real_mode(monkeypatch)
     _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
 
     metrics = run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
     assert metrics["split"] == "test"
@@ -187,6 +233,7 @@ def test_real_mode_refuses_repeated_run(trained_run, monkeypatch):
     tmp_path, run_dir, model, device = _frozen_run(trained_run)
     _enable_real_mode(monkeypatch)
     _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
 
     run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
 
@@ -200,6 +247,102 @@ def test_real_mode_refuses_repeated_run(trained_run, monkeypatch):
     with log_path.open(newline="") as handle:
         rows = list(csv.DictReader(handle))
     assert len(rows) == 1  # the refused second call appended nothing
+
+
+# ---- D18: simultaneous unblinding gates (real mode only) ------------------------------------
+
+
+def test_real_mode_refuses_unregistered_model(trained_run, monkeypatch):
+    # No cli/register_frozen.py call at all -- no artifacts/frozen/<model>.json.
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+    _write_matching_selection(tmp_path, run_dir)
+
+    with pytest.raises(FinalTestError, match="frozen registration"):
+        run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+
+
+@pytest.mark.slow
+def test_real_mode_refuses_sha_mismatch_vs_registration(trained_run, monkeypatch):
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+    _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
+
+    # Corrupt the registration's recorded sha for this seed.
+    frozen_path = tmp_path / "phase2" / "artifacts" / "frozen" / "tiny_cnn.json"
+    with frozen_path.open() as handle:
+        registration = json.load(handle)
+    for entry in registration["seeds"]:
+        if entry["seed"] == json.load((run_dir / "metadata.json").open())["seed"]:
+            entry["best_pt_sha256"] = "deadbeef" * 8
+    with frozen_path.open("w") as handle:
+        json.dump(registration, handle)
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "corrupt registration sha"], cwd=tmp_path, check=True, capture_output=True)
+
+    with pytest.raises(FinalTestError, match="does not match the frozen"):
+        run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+
+
+@pytest.mark.slow
+def test_real_mode_refuses_seed_not_in_registration(trained_run, monkeypatch):
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+    _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
+
+    frozen_path = tmp_path / "phase2" / "artifacts" / "frozen" / "tiny_cnn.json"
+    with frozen_path.open() as handle:
+        registration = json.load(handle)
+    own_seed = json.load((run_dir / "metadata.json").open())["seed"]
+    registration["seeds"] = [entry for entry in registration["seeds"] if entry["seed"] != own_seed]
+    with frozen_path.open("w") as handle:
+        json.dump(registration, handle)
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "drop seed from registration"], cwd=tmp_path, check=True, capture_output=True)
+
+    with pytest.raises(FinalTestError, match="not registered"):
+        run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+
+
+@pytest.mark.slow
+def test_real_mode_refuses_when_not_ready(trained_run, monkeypatch):
+    # A study.yaml with TWO models, where only tiny_cnn (this run's model)
+    # gets registered -- unblinding_status is NOT READY because the other
+    # study model never registers.
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+
+    study_path = tmp_path / "phase2" / "configs" / "study.yaml"
+    study_path.write_text(
+        "study_version: '1.0.0'\nmodels:\n  - tiny_cnn\n  - some_other_model\n"
+        "baseline_reference: reports/experiments/fake_baseline/experiment_summary.json\n"
+    )
+    _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
+
+    with pytest.raises(FinalTestError, match="NOT READY"):
+        run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+
+
+@pytest.mark.slow
+def test_rehearsal_still_works_when_not_ready(trained_run, monkeypatch):
+    # --rehearsal must never be blocked by D18 -- it never touches the
+    # test split or the access log, so there is nothing to protect.
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+
+    study_path = tmp_path / "phase2" / "configs" / "study.yaml"
+    study_path.write_text(
+        "study_version: '1.0.0'\nmodels:\n  - tiny_cnn\n  - some_other_model\n"
+        "baseline_reference: reports/experiments/fake_baseline/experiment_summary.json\n"
+    )
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "two-model study"], cwd=tmp_path, check=True, capture_output=True)
+    # No registration at all -- still must succeed in rehearsal mode.
+    metrics = run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=True, batch_size=2)
+    assert metrics["split"] == "val"
 
 
 # ---- C7: rehearsal -----------------------------------------------------------------------

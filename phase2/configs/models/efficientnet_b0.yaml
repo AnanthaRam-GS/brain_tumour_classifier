@@ -1,0 +1,7 @@
+name: efficientnet_b0
+version: "1.0.0"
+weights_id: "EfficientNet_B0_Weights.IMAGENET1K_V1"
+reference_only: false
+description: >-
+  torchvision EfficientNet-B0, ImageNet-pretrained, full fine-tuning,
+  3-class head (D8).
