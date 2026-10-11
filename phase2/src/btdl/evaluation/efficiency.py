@@ -27,10 +27,21 @@ def measure_inference(model, device, *, batch_sizes=None, warmup: int = None, it
     batch_sizes/warmup/iters default to configs/contract/evaluation.yaml's
     efficiency section; tests may pass smaller values explicitly.
 
-    Eval mode, no_grad, random 3x224x224 input, with explicit device
-    synchronization around each timed call (required for CUDA/MPS, whose
-    kernel launches are asynchronous -- without it the wall-clock timing
-    would measure launch overhead, not actual execution).
+    Eval mode, torch.inference_mode() (strictly faster than no_grad -- no
+    autograd version-counter bookkeeping at all, appropriate here since
+    nothing downstream ever needs gradients on these outputs), contiguous
+    memory format (channels_last measured consistently WORSE on this CPU
+    backend for a conv-heavy model -- see the Part A diagnosis), random
+    3x224x224 input, with explicit device synchronization around each timed
+    call (required for CUDA/MPS, whose kernel launches are asynchronous --
+    without it the wall-clock timing would measure launch overhead, not
+    actual execution). torch.use_deterministic_algorithms(True,
+    warn_only=True) is enabled (same posture as training's seed_everything,
+    D16) -- it does not alter eval-mode forward-pass numerics, only which
+    kernel variant is used, so it does not affect what is being measured;
+    both the determinism flag and the memory format actually in effect are
+    recorded in each batch size's result so the measurement's conditions are
+    never implicit.
     """
 
     evaluation_cfg = config.load_contract("evaluation")
@@ -41,13 +52,15 @@ def measure_inference(model, device, *, batch_sizes=None, warmup: int = None, it
     if iters is None:
         iters = evaluation_cfg["efficiency"]["iters"]
 
-    model = model.to(device)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+    model = model.to(device, memory_format=torch.contiguous_format)
     model.eval()
 
     results = {}
-    with torch.no_grad():
+    with torch.inference_mode():
         for batch_size in batch_sizes:
-            inputs = torch.rand(batch_size, 3, 224, 224, device=device)
+            inputs = torch.rand(batch_size, 3, 224, 224, device=device).contiguous()
 
             for _ in range(warmup):
                 model(inputs)
@@ -76,6 +89,8 @@ def measure_inference(model, device, *, batch_sizes=None, warmup: int = None, it
                 "p90_ms_per_batch": p90_ms,
                 "ms_per_image": median_ms / batch_size,
                 "device": describe_device(device),
+                "memory_format": "contiguous",
+                "deterministic_algorithms": True,
             }
 
     return results
