@@ -1,0 +1,8 @@
+name: resnet18
+version: "1.0.0"
+weights_id: "ResNet18_Weights.IMAGENET1K_V1"
+reference_only: false
+description: >-
+  torchvision ResNet18, ImageNet-pretrained, full fine-tuning, 3-class
+  head (D8). Assigned to Sanjay Anand M; implemented by the foundation
+  owner on their behalf.
