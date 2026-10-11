@@ -1,0 +1,35 @@
+{
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "foundation_lock_version": "1.2.0",
+  "git_commit": "c258bd56fb1cee7cf9970d23e2451d403e6a59f6",
+  "model_name": "resnet18",
+  "model_version": "1.0.0",
+  "seeds": [
+    {
+      "best_epoch": 26,
+      "best_pt_sha256": "fd68e5071732449b2907596737b42cd0f0af1ead8051cae2df4ca74c3e144925",
+      "best_val_macro_f1": 0.9452837443364824,
+      "frozen_at_commit": "9a4d5f6a0009bd873b205b44a62e71caffd55694",
+      "run_dir": "phase2/runs/resnet18/lr3e-04_seed42",
+      "seed": 42
+    },
+    {
+      "best_epoch": 20,
+      "best_pt_sha256": "5e776b944568ff62b0cd20a1631dce42c373fc75bcf030855856ee8d833b72f9",
+      "best_val_macro_f1": 0.9487839918115769,
+      "frozen_at_commit": "c258bd56fb1cee7cf9970d23e2451d403e6a59f6",
+      "run_dir": "phase2/runs/resnet18/lr3e-04_seed43",
+      "seed": 43
+    },
+    {
+      "best_epoch": 19,
+      "best_pt_sha256": "80ea561f172880807fae77da194218869ec2b2ba2b15c290d1d5965ace0007b6",
+      "best_val_macro_f1": 0.9423437564652382,
+      "frozen_at_commit": "c258bd56fb1cee7cf9970d23e2451d403e6a59f6",
+      "run_dir": "phase2/runs/resnet18/lr3e-04_seed44",
+      "seed": 44
+    }
+  ],
+  "selected_lr": 0.0003,
+  "weights_id": "ResNet18_Weights.IMAGENET1K_V1"
+}
