@@ -1,0 +1,33 @@
+{
+  "candidates": [
+    {
+      "best_epoch": 6,
+      "best_pt_sha256": "992350d068c8dc5b3436ede42d61d2773cd8ceec985b6f2417a2c18086d952fc",
+      "best_val_loss": 0.2635071277618408,
+      "best_val_macro_f1": 0.9285467165511953,
+      "lr": 0.0001,
+      "run_dir": "phase2/runs/resnet18/lr1e-04_seed42"
+    },
+    {
+      "best_epoch": 26,
+      "best_pt_sha256": "fd68e5071732449b2907596737b42cd0f0af1ead8051cae2df4ca74c3e144925",
+      "best_val_loss": 0.26637980341911316,
+      "best_val_macro_f1": 0.9452837443364824,
+      "lr": 0.0003,
+      "run_dir": "phase2/runs/resnet18/lr3e-04_seed42"
+    },
+    {
+      "best_epoch": 7,
+      "best_pt_sha256": "0e346de30b943039398ccf643422595796040d9c1407c26f31d9128748a22c0a",
+      "best_val_loss": 0.3577340245246887,
+      "best_val_macro_f1": 0.9084683135373878,
+      "lr": 0.001,
+      "run_dir": "phase2/runs/resnet18/lr1e-03_seed42"
+    }
+  ],
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "git_commit": "9a4d5f6a0009bd873b205b44a62e71caffd55694",
+  "model_name": "resnet18",
+  "selected_lr": 0.0003,
+  "selected_run_dir": "phase2/runs/resnet18/lr3e-04_seed42"
+}
