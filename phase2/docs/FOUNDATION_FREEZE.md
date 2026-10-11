@@ -413,3 +413,100 @@ registered) -- deleted after inspection.
 
 All green on a clean tree immediately before this work's final commit.
 `test_access_log.csv` remained header-only throughout.
+
+## 10. CPU timing fix, comparison pipeline, D19 (branch `phase2/comparison`)
+
+### CPU inference-timing fix
+
+`efficiency_central`'s CPU numbers were implausible (~202ms/img at
+batch=1, ~215ms/img at batch=32 -- batch=32 should never be slower per
+image). Diagnosed with a temporary thread-count/determinism/inference-
+mode/memory-format sweep (deleted after use): on this heterogeneous
+performance/efficiency-core CPU (Apple M5: 4 performance + 6 efficiency
+cores), PyTorch's intra-op thread pool synchronizes across every
+requested thread each op -- for a tiny batch=1 input the barrier overhead
+dominates and gets WORSE with more threads (measured ~30ms/img at 1
+thread → ~86ms/img at 4 (performance-core count) → ~200ms/img at all 10
+physical cores, while batch=32 stayed flat throughout).
+
+Fixed: `measure_inference()` now runs under `torch.inference_mode()`,
+contiguous memory format (channels_last measured consistently worse), and
+`torch.use_deterministic_algorithms(True, warn_only=True)` (same posture
+as training's `seed_everything`, D16 -- doesn't alter eval-mode
+forward-pass numerics). `efficiency_central`'s CPU thread count now
+defaults to the performance-core count (`sysctl hw.perflevel0.physicalcpu`)
+when detectable, else physical cores; both the policy and core counts are
+recorded. Re-measured for efficientnet_b0: CPU batch=1 202→95ms/img,
+batch=32 215→75ms/img (now correctly faster than batch=1); MPS
+essentially unchanged (4.4/3.1 → 4.6/3.4ms/img, within noise).
+
+### Cross-model comparison pipeline (D14, D15, D18)
+
+New `src/btdl/comparison/` package (`loaders`, `baseline`, `stats`,
+`tables`, `plots`, `report`) and `cli/compare.py --mode {test,val-preview}`:
+
+- **test mode**: built ONLY from exported
+  `artifacts/results/<model>/seed<k>/` directories plus the Phase 1
+  baseline (`glcm_xgboost_v2`)'s test predictions (sample-id set checked
+  for EXACT equality against the Phase 2 test split). Requires
+  `unblinding_status` READY and every study model exported; refuses
+  (listing what's missing) otherwise. Each seed's checkpoint sha256 is
+  re-verified against its D18 frozen registration -- a mismatch is a hard
+  refusal (`ComparisonIntegrityError`), never silently treated as
+  "missing".
+- **val-preview mode**: built from registered models' LOCAL `eval/val/`
+  directories only -- never `eval/test/`, never a test-split dataset.
+  Every output is labelled **"VALIDATION PREVIEW -- NOT RESULTS"** and
+  written to the gitignored `phase2/runs/_preview/comparison/`.
+- **Statistics**: per-model seed mean±std (sample std) for every D14
+  headline and per-class metric; a pooled patient bootstrap per model
+  (seed-averaged metric inside each resample); a paired patient bootstrap
+  for every model pair and each model vs. the Phase 1 baseline (CI of the
+  seed-averaged-metric difference, on identical resamples -- a model
+  paired against itself gives exactly 0.0); size-tertile × class recall,
+  seed-averaged; D19 calibration (ECE, 15 equal-width bins, top-label) per
+  model, mean±std over seeds, with reliability-diagram data.
+- **Outputs** (test mode, tracked): `headline/per_class/paired/
+  stratified/calibration/efficiency` tables (CSV+MD), 8 figures, `
+  comparison.json` (with content-hashed inputs), and `docs/RESULTS.md`
+  with D15's limitation statements and the paired-comparison multiplicity
+  caveat baked in; narrative sections are explicit TODO placeholders, not
+  auto-generated.
+- **Deterministic**: bootstrap settings come from the committed
+  `evaluation.yaml` contract; two runs over identical inputs produce
+  byte-identical tables and `comparison.json`.
+
+### D19 — supplementary calibration analysis
+
+Added to `DECISIONS.md`: calibration (ECE) is descriptive/supplementary
+only and never influences model selection. Process decision, no contract
+change.
+
+### Val-preview run (efficientnet_b0, the only registered model)
+
+`python -m btdl.cli.compare --mode val-preview`: `present_models =
+["efficientnet_b0"]`, `missing_models = ["alexnet", "vgg16", "googlenet",
+"resnet18"]`. Headline (seed mean ± std, matching the earlier seed-table
+report exactly): macro-F1 **0.9494 ± 0.0083**, balanced accuracy **0.9508
+± 0.0058**, meningioma F1 **0.9284 ± 0.0090**, macro AUC **0.9906 ±
+0.0008**, ECE **0.0280 ± 0.0019**. 8 figures generated. Output under the
+gitignored `phase2/runs/_preview/comparison/` -- nothing committed (per
+D18, the real comparison measurement/output happens once all five
+architectures are registered).
+
+### Foundation lock
+
+Regenerated, `lock_version` bumped **1.1.0 → 1.2.0** (now also covers
+`src/btdl/comparison/` and `cli/compare.py`; `_LOCKED_SUBDIRS` gained
+`"comparison"`). `contract_dir_sha256` unchanged.
+
+### Updated full test counts (as of this comparison-pipeline work)
+
+- Phase 2 full suite (including slow + network): **540 passed**, 749.33s
+- Phase 2 fast (`-m "not slow"`): **479 passed**, 61 deselected, 89.63s
+- Phase 1 suite: **234 passed**, 19.77s
+
+All green on a clean tree immediately before this work's final commit.
+`test_access_log.csv` remained header-only; no tracked files exist under
+`artifacts/comparison/` (test mode has not been run -- only val-preview,
+which writes to the gitignored `runs/_preview/`).

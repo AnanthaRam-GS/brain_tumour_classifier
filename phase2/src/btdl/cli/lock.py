@@ -4,9 +4,9 @@ The foundation lock (phase2/artifacts/contract/foundation_lock.json,
 tracked) records a SHA-256 per file in the locked foundation: every
 configs/contract/*.yaml file, configs/study.yaml, src/btdl/{config.py,
 contracts.py, runs.py}, every .py file under src/btdl/{data,
-preprocessing, training, evaluation, cli}/, and src/btdl/models/
-{registry.py, model_spec.py, torchvision_common.py} -- plus the overall
-contract_dir_sha256 and a lock version.
+preprocessing, training, evaluation, cli, comparison}/, and src/btdl/
+models/{registry.py, model_spec.py, torchvision_common.py} -- plus the
+overall contract_dir_sha256 and a lock version.
 
 configs/study.yaml (the list of architectures in the comparison study, D18)
 is locked but deliberately NOT part of configs/contract/ -- it is not a
@@ -30,13 +30,13 @@ from pathlib import Path
 
 from btdl import config
 
-LOCK_VERSION = "1.1.0"
+LOCK_VERSION = "1.2.0"
 LOCK_RELPATH = "phase2/artifacts/contract/foundation_lock.json"
 
 _BTDL_SRC_RELPATH = "phase2/src/btdl"
 _CONTRACT_RELPATH = "phase2/configs/contract"
 _TOP_LEVEL_LOCKED_FILES = ("config.py", "contracts.py", "runs.py")
-_LOCKED_SUBDIRS = ("data", "preprocessing", "training", "evaluation", "cli")
+_LOCKED_SUBDIRS = ("data", "preprocessing", "training", "evaluation", "cli", "comparison")
 _MODELS_LOCKED_FILES = ("registry.py", "model_spec.py", "torchvision_common.py")
 _ADDITIONAL_LOCKED_FILES = ("phase2/configs/study.yaml",)
 

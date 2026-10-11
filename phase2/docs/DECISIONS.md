@@ -257,6 +257,34 @@ This is a **process decision**: no contract file changed, and
 This enforcement is tooling/process only: `configs/contract/` is
 unchanged, `CONTRACT_VERSION` stays `1.0.0`.
 
+## D19 — Supplementary calibration analysis
+
+**Decision:** Calibration is measured and reported as a **descriptive,
+supplementary** analysis only -- it never influences model selection
+(lr/seed selection, the architecture comparison's headline ranking, or
+anything else). The metric is the **expected calibration error (ECE)**:
+top-label (the predicted class's own confidence vs. whether that
+prediction was correct), **15 equal-width bins** over `[0, 1]`,
+`ECE = sum_bins (|bin| / N) * |accuracy(bin) - confidence(bin)|`. Reported
+per model as the mean ± sample std of each seed's ECE, alongside a
+reliability diagram (confidence vs. empirical accuracy per bin). Added
+before unblinding (the comparison pipeline computes it from exported
+test-split predictions, same as every other reported metric).
+
+**Rationale:** A model with a lower macro-F1 but better-calibrated
+probabilities (or vice versa) is a materially different kind of result
+than a difference in macro-F1 alone communicates, and is worth recording
+for anyone who later wants probability estimates (not just hard labels)
+from these models. It is explicitly supplementary -- not a selection
+criterion -- because the whole protocol (D11/D12) and the training recipe
+were designed and fixed around macro-F1-based selection; retrofitting
+calibration into the selection criterion after the fact would change what
+"selection" means without the team agreement D10-D12 required for the
+original criterion.
+
+This is a **process decision**: no contract file changed, and
+`CONTRACT_VERSION` stays `1.0.0`.
+
 ---
 
 ## Changing a decision
@@ -279,3 +307,10 @@ Any change to a decision in this document requires:
   `cli/export_results.py`, `cli/efficiency_central.py`), foundation lock
   bumped to 1.1.0. Process/tooling only -- `configs/contract/` unchanged,
   `CONTRACT_VERSION` stays 1.0.0.
+- 2026-10-11 — Added D19 (supplementary, descriptive-only calibration
+  analysis: top-label ECE, 15 equal-width bins; never influences
+  selection). Added the cross-model comparison pipeline
+  (`src/btdl/comparison/`, `cli/compare.py`) and reliable CPU inference
+  timing in `evaluation/efficiency.py`/`cli/efficiency_central.py`.
+  Foundation lock bumped to 1.2.0. Process/tooling only -- `configs/
+  contract/` unchanged, `CONTRACT_VERSION` stays 1.0.0.
