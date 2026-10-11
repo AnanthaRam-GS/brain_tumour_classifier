@@ -1,0 +1,35 @@
+{
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "foundation_lock_version": "1.0.0",
+  "git_commit": "87f7b470b0e5bce1bd35c99c6413520b9a562f41",
+  "model_name": "efficientnet_b0",
+  "model_version": "1.0.0",
+  "seeds": [
+    {
+      "best_epoch": 22,
+      "best_pt_sha256": "0b9b58e1c3695f032ea94b73f3f4ab5c04fea3b30fa70d596e2dbd4612c38aa4",
+      "best_val_macro_f1": 0.9580165774498149,
+      "frozen_at_commit": "fa031b35b3ed767ce0308de2d2ada20405463ed4",
+      "run_dir": "phase2/runs/efficientnet_b0/lr3e-04_seed42",
+      "seed": 42
+    },
+    {
+      "best_epoch": 2,
+      "best_pt_sha256": "2dc21c64061c32bf6d844ebeef3e23154430ebcc43e317642e90f71a8be44c61",
+      "best_val_macro_f1": 0.9414930742939379,
+      "frozen_at_commit": "71fba8de6185faecb198f43cf721cf742701081f",
+      "run_dir": "phase2/runs/efficientnet_b0/lr3e-04_seed43",
+      "seed": 43
+    },
+    {
+      "best_epoch": 5,
+      "best_pt_sha256": "33836226be9147012bda9e66e6370c60df55bf5c536b2522beadf9f167e39b53",
+      "best_val_macro_f1": 0.9486781061704151,
+      "frozen_at_commit": "71fba8de6185faecb198f43cf721cf742701081f",
+      "run_dir": "phase2/runs/efficientnet_b0/lr3e-04_seed44",
+      "seed": 44
+    }
+  ],
+  "selected_lr": 0.0003,
+  "weights_id": "EfficientNet_B0_Weights.IMAGENET1K_V1"
+}

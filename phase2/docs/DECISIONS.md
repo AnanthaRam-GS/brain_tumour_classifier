@@ -229,6 +229,34 @@ on and are not comparable to each other.
 This is a **process decision**: no contract file changed, and
 `CONTRACT_VERSION` stays `1.0.0`.
 
+**Enforcement:** D18 is enforced in code, not only by convention:
+
+- `cli/register_frozen.py` writes a TRACKED, provenance-only
+  `artifacts/frozen/<model>.json` (model/version/weights_id/selected lr/
+  contract hash/lock version/git commit, and per `final_seed`: run_dir,
+  `best_pt_sha256`, `frozen_at_commit`, best_epoch, best val macro-F1 --
+  deliberately NO test information) once every final seed's run is
+  frozen, conformant, clean, and has a passing rehearsal.
+- `cli/unblinding_status.py` reports READY only when every model in
+  `configs/study.yaml` has a registration covering every `final_seed`
+  with a `contract_dir_sha256` matching the current contract; exit code 0
+  iff READY.
+- `cli/final_test.py` (real mode only -- `--rehearsal` is completely
+  unaffected) refuses to run unless the model being tested has a frozen
+  registration whose recorded sha256 for this seed matches the exact
+  checkpoint in use, AND `unblinding_status` is READY.
+- `cli/export_results.py` independently re-checks the same registration
+  before copying anything, refusing on a sha mismatch.
+- `cli/efficiency_central.py` performs the central, single-machine
+  measurement for every study model that is registered in the catalog,
+  writing TRACKED `artifacts/comparison/efficiency_<device>.json`.
+- `configs/study.yaml` (schema-validated, part of the foundation lock but
+  not of `configs/contract/`) names which architectures are in scope for
+  the comparison.
+
+This enforcement is tooling/process only: `configs/contract/` is
+unchanged, `CONTRACT_VERSION` stays `1.0.0`.
+
 ---
 
 ## Changing a decision
@@ -244,4 +272,10 @@ Any change to a decision in this document requires:
 - 2026-10-08 — Initial decision record (D1–D17), contract version 1.0.0.
 - 2026-10-10 — Added D18 (simultaneous unblinding, central efficiency
   measurement). Process decision only -- no contract file changed,
+  `CONTRACT_VERSION` stays 1.0.0.
+- 2026-10-10 — Added D18's "Enforcement" paragraph: D18 is now enforced in
+  code (`configs/study.yaml`, `cli/register_frozen.py`,
+  `cli/unblinding_status.py`, D18 gates in `cli/final_test.py` and
+  `cli/export_results.py`, `cli/efficiency_central.py`), foundation lock
+  bumped to 1.1.0. Process/tooling only -- `configs/contract/` unchanged,
   `CONTRACT_VERSION` stays 1.0.0.
