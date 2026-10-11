@@ -10,9 +10,22 @@ Models in study.yaml that aren't yet registered in the catalog are
 skipped and listed (not an error -- this tool is run again once every
 architecture lands). Weights are never loaded (pretrained=False) since
 they don't affect timing. For CPU, torch.set_num_threads is fixed to a
-recorded value (default: the physical core count, falling back to
-os.cpu_count()) so the measurement's thread count is itself part of the
-record, not incidental.
+recorded value -- default: the PERFORMANCE-core count when detectable
+(`sysctl hw.perflevel0.physicalcpu` on Apple Silicon), else the physical
+core count, else os.cpu_count() -- so the measurement's thread count is
+itself part of the record, not incidental.
+
+Thread-count policy (diagnosed in docs/DECISIONS.md D19's CPU timing
+investigation): on a heterogeneous performance/efficiency-core CPU (e.g.
+Apple Silicon), PyTorch's intra-op thread pool synchronizes across ALL
+requested threads every op, including the slow efficiency cores -- for a
+small batch (1 image), that synchronization overhead dominates the tiny
+amount of actual compute and grows WORSE with more threads (measured:
+~30ms/img at 1 thread -> ~86ms/img at 4 performance-core threads ->
+~200ms/img at all 10 physical-core threads, while batch=32 stayed flat
+across all three). Using only the performance cores is the general-purpose
+fix: it does not require per-batch-size thread tuning, and avoids the
+efficiency cores acting as stragglers in the parallel barrier.
 
 Writes TRACKED phase2/artifacts/comparison/efficiency_<device>.json.
 Overwriting an existing file requires --overwrite (these are
@@ -58,6 +71,28 @@ def _physical_cpu_count() -> int:
     return os.cpu_count() or 1
 
 
+def _performance_core_count():
+    """Apple Silicon's performance-core count (hw.perflevel0.physicalcpu),
+    or None where undetectable (non-Darwin, or a non-heterogeneous CPU)."""
+
+    if platform.system() != "Darwin":
+        return None
+    try:
+        count = int(subprocess.check_output(["sysctl", "-n", "hw.perflevel0.physicalcpu"], text=True).strip())
+        return count if count > 0 else None
+    except Exception:
+        return None
+
+
+def _default_cpu_threads() -> tuple:
+    """Returns (thread_count, policy_name) -- see module docstring."""
+
+    perf_cores = _performance_core_count()
+    if perf_cores is not None:
+        return perf_cores, "performance_cores"
+    return _physical_cpu_count(), "physical_cores"
+
+
 def _cpu_model_name() -> str:
     if platform.system() == "Darwin":
         try:
@@ -75,8 +110,12 @@ def run_efficiency_central(device, *, num_threads: int = None, overwrite: bool =
     if out_path.is_file() and not overwrite:
         raise EfficiencyCentralError(f"{out_path} already exists -- pass --overwrite to replace it")
 
+    thread_policy = None
     if device.type == "cpu":
-        num_threads = num_threads if num_threads is not None else _physical_cpu_count()
+        if num_threads is not None:
+            thread_policy = "explicit"
+        else:
+            num_threads, thread_policy = _default_cpu_threads()
         torch.set_num_threads(num_threads)
 
     present_models = []
@@ -100,6 +139,9 @@ def run_efficiency_central(device, *, num_threads: int = None, overwrite: bool =
         "torch_version": torch.__version__,
         "device": describe_device(device),
         "num_threads": torch.get_num_threads() if device.type == "cpu" else None,
+        "thread_policy": thread_policy,
+        "performance_core_count": _performance_core_count(),
+        "physical_core_count": _physical_cpu_count(),
     }
 
     payload = {

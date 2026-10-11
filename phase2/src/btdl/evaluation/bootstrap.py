@@ -25,7 +25,7 @@ METRIC_NAMES = (
 )
 
 
-def _extract_metric_values(metrics: dict) -> dict:
+def extract_metric_values(metrics: dict) -> dict:
     values = {
         "accuracy": metrics["accuracy"],
         "balanced_accuracy": metrics["balanced_accuracy"],
@@ -39,8 +39,8 @@ def _extract_metric_values(metrics: dict) -> dict:
     return values
 
 
-def _fast_metric_values(y_true_idx, probs) -> dict:
-    """Same metric set as _extract_metric_values(full_metrics(...)), computed
+def fast_metric_values(y_true_idx, probs) -> dict:
+    """Same metric set as extract_metric_values(full_metrics(...)), computed
     directly via sklearn (skipping confusion_matrix/roc_curves/precision/
     recall, which bootstrap never needs) -- full_metrics() per resample made
     n_resamples=2000 bootstraps minutes slow; this keeps it to seconds."""
@@ -76,17 +76,17 @@ def _fast_metric_values(y_true_idx, probs) -> dict:
     return values
 
 
-def _patient_index_map(patient_ids: np.ndarray) -> dict:
+def patient_index_map(patient_ids: np.ndarray) -> dict:
     unique_patients = np.unique(patient_ids)
     return {patient: np.where(patient_ids == patient)[0] for patient in unique_patients}
 
 
-def _resample_indices(unique_patients, patient_to_indices, rng) -> np.ndarray:
+def resample_indices(unique_patients, patient_to_indices, rng) -> np.ndarray:
     sampled_patients = rng.choice(unique_patients, size=len(unique_patients), replace=True)
     return np.concatenate([patient_to_indices[patient] for patient in sampled_patients])
 
 
-def _percentile_ci(samples, alpha):
+def percentile_ci(samples, alpha):
     low_pct = 100 * (alpha / 2)
     high_pct = 100 * (1 - alpha / 2)
     return float(np.percentile(samples, low_pct)), float(np.percentile(samples, high_pct))
@@ -106,17 +106,17 @@ def patient_bootstrap(
     probs = np.asarray(probs)
     patient_ids = np.asarray(patient_ids)
 
-    patient_to_indices = _patient_index_map(patient_ids)
+    patient_to_indices = patient_index_map(patient_ids)
     unique_patients = np.array(list(patient_to_indices.keys()))
 
-    point_values = _extract_metric_values(full_metrics(y_true_idx, probs))
+    point_values = extract_metric_values(full_metrics(y_true_idx, probs))
 
     rng = np.random.default_rng(seed)
     collected = {name: [] for name in point_values}
 
     for _ in range(n_resamples):
-        idx = _resample_indices(unique_patients, patient_to_indices, rng)
-        values = _fast_metric_values(y_true_idx[idx], probs[idx])
+        idx = resample_indices(unique_patients, patient_to_indices, rng)
+        values = fast_metric_values(y_true_idx[idx], probs[idx])
         for name, value in values.items():
             if value is not None and np.isfinite(value):
                 collected[name].append(value)
@@ -128,7 +128,7 @@ def patient_bootstrap(
         if n_valid == 0:
             result[name] = {"point": point_value, "ci_low": None, "ci_high": None, "n_valid": 0}
             continue
-        ci_low, ci_high = _percentile_ci(samples, alpha)
+        ci_low, ci_high = percentile_ci(samples, alpha)
         result[name] = {"point": point_value, "ci_low": ci_low, "ci_high": ci_high, "n_valid": n_valid}
 
     return result
@@ -152,11 +152,11 @@ def paired_patient_bootstrap(
     probs_b = np.asarray(probs_b)
     patient_ids = np.asarray(patient_ids)
 
-    patient_to_indices = _patient_index_map(patient_ids)
+    patient_to_indices = patient_index_map(patient_ids)
     unique_patients = np.array(list(patient_to_indices.keys()))
 
-    point_a = _extract_metric_values(full_metrics(y_true_idx, probs_a))
-    point_b = _extract_metric_values(full_metrics(y_true_idx, probs_b))
+    point_a = extract_metric_values(full_metrics(y_true_idx, probs_a))
+    point_b = extract_metric_values(full_metrics(y_true_idx, probs_b))
     point_diff = {
         name: (point_a[name] - point_b[name])
         if (point_a[name] is not None and point_b[name] is not None)
@@ -169,9 +169,9 @@ def paired_patient_bootstrap(
     a_greater_count = {name: 0 for name in point_a}
 
     for _ in range(n_resamples):
-        idx = _resample_indices(unique_patients, patient_to_indices, rng)
-        values_a = _fast_metric_values(y_true_idx[idx], probs_a[idx])
-        values_b = _fast_metric_values(y_true_idx[idx], probs_b[idx])
+        idx = resample_indices(unique_patients, patient_to_indices, rng)
+        values_a = fast_metric_values(y_true_idx[idx], probs_a[idx])
+        values_b = fast_metric_values(y_true_idx[idx], probs_b[idx])
         for name in point_diff:
             va, vb = values_a[name], values_b[name]
             if va is None or vb is None or not np.isfinite(va) or not np.isfinite(vb):
@@ -193,7 +193,7 @@ def paired_patient_bootstrap(
                 "frac_a_greater": None,
             }
             continue
-        ci_low, ci_high = _percentile_ci(samples, alpha)
+        ci_low, ci_high = percentile_ci(samples, alpha)
         result[name] = {
             "point": point_value,
             "ci_low": ci_low,
