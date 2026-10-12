@@ -9,8 +9,17 @@ never calls RoiDataset at all (it reads the ROI cache and predictions.csv
 directly); tests/test_walkthrough.py's AST guard statically forbids this
 module from ever calling RoiDataset with split="test" or allow_test=True,
 should one ever be added here.
+
+The one exception is `run_official_final_test()`: the single, explicitly
+gated place in this module allowed to call `btdl.cli.final_test`'s real
+(non-rehearsal) `run_final_test` -- it refuses immediately unless called
+with `confirm=True`. tests/test_walkthrough.py's AST guard also statically
+forbids any call to `run_final_test` anywhere in this module OUTSIDE
+`run_official_final_test`, and asserts that function's confirm check is
+its first statement.
 """
 
+import csv
 import json
 from pathlib import Path
 
@@ -508,3 +517,86 @@ def test_access_status(model: str) -> dict:
     model_row = next((row for row in overall_status["models"] if row["model_name"] == model), None)
 
     return {"per_seed": per_seed, "study_wide_ready": overall_status["ready"], "model_status_row": model_row}
+
+
+# ---- gated official final-test helper (the ONE place this module may touch the real test split) --
+
+
+def run_official_final_test(model: str, *, confirm: bool, device=None) -> dict:
+    """The ONLY sanctioned place in this module allowed to run a REAL
+    (non-rehearsal) final_test -- refuses immediately unless confirm=True
+    (docs/DECISIONS.md D18). For each of training.yaml's final_seeds: if
+    that run is already in the test-access log, records it as already
+    tested (skipped, no re-run -- final_test itself refuses a repeat
+    anyway); otherwise runs `check_final_test_readiness` first and, only
+    if every gate passes, the real final_test. Afterwards exports every
+    seed that has a real test result but isn't exported yet. Returns
+    {"per_seed": {seed: {...}}, "git_commands": [...]} -- it never commits
+    anything itself, only tells the caller what to run."""
+
+    if not confirm:
+        raise WalkthroughError(
+            "run_official_final_test refuses to run unless confirm=True -- this is the only "
+            "sanctioned way this module may touch the real test split (docs/DECISIONS.md D18)"
+        )
+
+    from btdl.cli.export_results import ExportResultsError, run_export_results
+    from btdl.cli.final_test import check_final_test_readiness, run_final_test
+    from btdl.training.device import select_device
+
+    repo_root = config.repo_root()
+    device = device or select_device("auto")
+    selected_lr = _selection(model, repo_root)["selected_lr"]
+    final_seeds = _final_seeds()
+    log_path = repo_root / TEST_ACCESS_LOG_RELPATH
+
+    def _logged_row(run_dir_rel):
+        if not log_path.is_file():
+            return None
+        with log_path.open(newline="") as handle:
+            return next((row for row in csv.DictReader(handle) if row.get("run_dir") == run_dir_rel), None)
+
+    per_seed = {}
+    for seed in final_seeds:
+        run_dir = run_dir_for(model, selected_lr, seed, smoke=False)
+        run_dir_rel = str(run_dir.resolve().relative_to(repo_root))
+        logged_row = _logged_row(run_dir_rel)
+
+        if logged_row is not None:
+            per_seed[seed] = {
+                "status": "already tested",
+                "detail": f"already tested at {logged_row.get('utc_timestamp')}",
+            }
+            continue
+
+        readiness = check_final_test_readiness(run_dir, repo_root=repo_root)
+        if not all(gate["ok"] for gate in readiness):
+            failing = [gate["name"] for gate in readiness if not gate["ok"]]
+            per_seed[seed] = {
+                "status": "not ready",
+                "detail": f"failing readiness gate(s): {failing}",
+                "readiness": readiness,
+            }
+            continue
+
+        metrics = run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=False)
+        per_seed[seed] = {"status": "tested", "detail": f"macro_f1={metrics['macro_f1']:.4f}"}
+
+    for seed in final_seeds:
+        run_dir = run_dir_for(model, selected_lr, seed, smoke=False)
+        dest_dir = repo_root / RESULTS_DIR_RELPATH / model / f"seed{seed}"
+        if dest_dir.is_dir():
+            per_seed[seed]["export_status"] = "already exported"
+            continue
+        try:
+            run_export_results(run_dir)
+            per_seed[seed]["export_status"] = "exported"
+        except ExportResultsError as exc:
+            per_seed[seed]["export_status"] = f"skipped: {exc}"
+
+    git_commands = [
+        f"git add {TEST_ACCESS_LOG_RELPATH} {RESULTS_DIR_RELPATH}/{model}/",
+        f'git commit -m "results({model}): official final test"',
+    ]
+
+    return {"per_seed": per_seed, "git_commands": git_commands}

@@ -39,16 +39,62 @@ def test_walkthrough_never_constructs_test_split_dataset():
     assert not offenses, f"walkthrough.py must never touch the test split: {offenses}"
 
 
-def test_walkthrough_never_imports_final_test_internals():
-    # Belt-and-suspenders: the module must not import the one function that
-    # IS allowed to set allow_test=True.
+def _enclosing_function_name(tree, target_node):
+    """The name of the nearest ast.FunctionDef containing target_node, or
+    None if target_node is at module level."""
+
+    best = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and target_node in ast.walk(node):
+            if best is None or node.lineno > best.lineno:
+                best = node
+    return best.name if best is not None else None
+
+
+def test_run_final_test_called_only_inside_run_official_final_test():
+    # run_final_test is the ONE function allowed to set allow_test=True (in
+    # its own real-mode branch) -- walkthrough.py may call it, but only
+    # from the one explicitly gated place.
+    path = config.repo_root() / "phase2" / "src" / "btdl" / "walkthrough.py"
+    source = path.read_text()
+    tree = ast.parse(source)
+
+    offenders = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        callee = node.func
+        name = callee.id if isinstance(callee, ast.Name) else getattr(callee, "attr", None)
+        if name != "run_final_test":
+            continue
+        enclosing = _enclosing_function_name(tree, node)
+        if enclosing != "run_official_final_test":
+            offenders.append((enclosing, node.lineno))
+    assert not offenders, f"run_final_test must only be called inside run_official_final_test: {offenders}"
+
+    # Sanity: confirm it DOES appear inside run_official_final_test (the test isn't vacuous).
+    assert "run_final_test(" in source
+
+
+def test_run_official_final_test_begins_with_the_confirm_check():
     path = config.repo_root() / "phase2" / "src" / "btdl" / "walkthrough.py"
     tree = ast.parse(path.read_text())
-    imported_names = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            imported_names.update(alias.name for alias in node.names)
-    assert "run_final_test" not in imported_names
+    func = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "run_official_final_test")
+
+    body = func.body
+    # Skip a leading docstring Expr, if present.
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+        body = body[1:]
+
+    assert body, "run_official_final_test has no statements after its docstring"
+    first = body[0]
+    assert isinstance(first, ast.If), f"first statement must be the confirm check (an `if`), got {type(first).__name__}"
+
+    test_source = ast.dump(first.test)
+    assert "confirm" in test_source, f"first `if` must test `confirm`, got: {test_source}"
+
+    raises_in_body = any(isinstance(stmt, ast.Raise) for stmt in ast.walk(first))
+    assert raises_in_body, "the confirm check's `if` body must raise"
 
 
 # ---- 1. dataset_overview ------------------------------------------------------------------
