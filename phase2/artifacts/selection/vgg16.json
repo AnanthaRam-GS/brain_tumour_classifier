@@ -1,0 +1,33 @@
+{
+  "candidates": [
+    {
+      "best_epoch": 6,
+      "best_pt_sha256": "058f7dc3d693c2ce81e292036c369a35740ca403b2c5cf85b2be6832f4b7f698",
+      "best_val_loss": 0.3347657024860382,
+      "best_val_macro_f1": 0.9203864559456307,
+      "lr": 0.0001,
+      "run_dir": "phase2\\runs\\vgg16\\lr1e-04_seed42"
+    },
+    {
+      "best_epoch": 37,
+      "best_pt_sha256": "477046453fd43e7143ba352db78c9877b97c45bef952299092d71d6af87e160d",
+      "best_val_loss": 0.46825072169303894,
+      "best_val_macro_f1": 0.9494578707735858,
+      "lr": 0.0003,
+      "run_dir": "phase2\\runs\\vgg16\\lr3e-04_seed42"
+    },
+    {
+      "best_epoch": 28,
+      "best_pt_sha256": "95de918326b20dd36f28b1dfa87a65698f6b08df6da01ba91a7ca304409cb3f8",
+      "best_val_loss": 0.3535819351673126,
+      "best_val_macro_f1": 0.905462810517954,
+      "lr": 0.001,
+      "run_dir": "phase2\\runs\\vgg16\\lr1e-03_seed42"
+    }
+  ],
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "git_commit": "7fda059b1d653e16644dc7becd31132543251537",
+  "model_name": "vgg16",
+  "selected_lr": 0.0003,
+  "selected_run_dir": "phase2\\runs\\vgg16\\lr3e-04_seed42"
+}
