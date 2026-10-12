@@ -1,0 +1,35 @@
+{
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "foundation_lock_version": "1.2.0",
+  "git_commit": "5bcdc59ed322d5278f6f0ce2cb61c4c6c2a11145",
+  "model_name": "vgg16",
+  "model_version": "1.0.0",
+  "seeds": [
+    {
+      "best_epoch": 37,
+      "best_pt_sha256": "477046453fd43e7143ba352db78c9877b97c45bef952299092d71d6af87e160d",
+      "best_val_macro_f1": 0.9494578707735858,
+      "frozen_at_commit": "7fda059b1d653e16644dc7becd31132543251537",
+      "run_dir": "phase2\\runs\\vgg16\\lr3e-04_seed42",
+      "seed": 42
+    },
+    {
+      "best_epoch": 24,
+      "best_pt_sha256": "afd553bc24878348a6280117bc045be7a2208622f724b9dd5e067b307b5bf168",
+      "best_val_macro_f1": 0.9372531682876512,
+      "frozen_at_commit": "5bcdc59ed322d5278f6f0ce2cb61c4c6c2a11145",
+      "run_dir": "phase2\\runs\\vgg16\\lr3e-04_seed43",
+      "seed": 43
+    },
+    {
+      "best_epoch": 39,
+      "best_pt_sha256": "238a9ff0c548cc21b9c02c2cafd456c0394450145d8e652c4ca030f37ea70056",
+      "best_val_macro_f1": 0.9223129720019343,
+      "frozen_at_commit": "5bcdc59ed322d5278f6f0ce2cb61c4c6c2a11145",
+      "run_dir": "phase2\\runs\\vgg16\\lr3e-04_seed44",
+      "seed": 44
+    }
+  ],
+  "selected_lr": 0.0003,
+  "weights_id": "VGG16_Weights.IMAGENET1K_V1"
+}
