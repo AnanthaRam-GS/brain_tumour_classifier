@@ -6,6 +6,7 @@ BTDL_DATA_ROOT for environments (Colab, Kaggle) where the data lives
 elsewhere than the code.
 """
 
+import csv
 import hashlib
 import os
 import subprocess
@@ -91,14 +92,90 @@ def cache_dir() -> Path:
     return path.resolve()
 
 
+# The one tracked file exempt from the dirty-tree check when its only
+# changes are well-formed appended rows (docs/DECISIONS.md D18: multiple
+# final_test calls, one per seed, must not require a commit between them).
+# Must match cli/final_test.py's TEST_ACCESS_LOG_RELPATH exactly.
+_APPEND_ONLY_EXEMPT_RELPATH = "phase2/artifacts/test_access_log.csv"
+
+
+def _is_append_only_change(root: Path, relpath: str) -> bool:
+    """True iff `relpath` is the test-access log AND its current
+    working-tree content is HEAD's content (empty, for a log that has never
+    been committed at all -- e.g. the very first final_test call in a
+    fresh repo) with only well-formed CSV rows appended (exact byte
+    prefix; every appended non-blank line has the same column count as the
+    header). Anything else about the file -- an edit, a deletion, a
+    reordering, a malformed row -- is NOT exempt. No other path is ever
+    exempt."""
+
+    if relpath != _APPEND_ONLY_EXEMPT_RELPATH:
+        return False
+
+    working_path = root / relpath
+    if not working_path.is_file():
+        return False  # a deletion is never an append
+
+    try:
+        head_bytes = subprocess.check_output(
+            ["git", "show", f"HEAD:{relpath}"], cwd=root, stderr=subprocess.DEVNULL
+        )
+    except subprocess.CalledProcessError:
+        head_bytes = b""  # not committed at all yet -- treat as append-over-empty
+
+    working_bytes = working_path.read_bytes()
+    if not working_bytes.startswith(head_bytes):
+        return False
+    appended_bytes = working_bytes[len(head_bytes) :]
+    if not appended_bytes:
+        return False  # byte-identical to HEAD; wouldn't show as dirty anyway
+
+    try:
+        head_text = head_bytes.decode("utf-8") if head_bytes else ""
+        appended_text = appended_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+
+    appended_lines = [line for line in appended_text.splitlines() if line.strip()]
+    if not appended_lines:
+        return False
+
+    if head_text:
+        # Existing committed file: its own first line is the header; every
+        # appended line is a data row to validate.
+        header_line = head_text.splitlines()[0]
+        data_lines = appended_lines
+    else:
+        # Brand-new (never-committed) file -- e.g. the very first
+        # final_test call in a fresh repo: its own first line IS the
+        # header, so it isn't itself validated as a data row.
+        header_line = appended_lines[0]
+        data_lines = appended_lines[1:]
+        if not data_lines:
+            return False  # header with no log row yet is not an "append"
+
+    expected_columns = len(next(csv.reader([header_line]), []))
+    if expected_columns == 0:
+        return False
+
+    for line in data_lines:
+        row = next(csv.reader([line]), None)
+        if row is None or len(row) != expected_columns:
+            return False
+
+    return True
+
+
 def git_dirty_paths(root=None) -> list:
     """Offending paths under the Phase 2 dirty-tree definition.
 
     dirty = any TRACKED file modified/staged/deleted anywhere in the repo,
-    OR any untracked, non-ignored file under phase2/. An untracked file
-    outside phase2/ (e.g. the user's own reference documents at the repo
-    root) does not count -- `git status --porcelain` never lists ignored
-    files, so every untracked line here is already non-ignored.
+    OR any untracked, non-ignored file under phase2/ -- EXCEPT the
+    test-access log when its only changes are well-formed appended rows
+    (see _is_append_only_change / D18). An untracked file outside phase2/
+    (e.g. the user's own reference documents at the repo root) does not
+    count -- `git status --porcelain` never lists ignored files, so every
+    untracked line here is already non-ignored.
     """
 
     root = Path(root) if root is not None else repo_root()
@@ -109,6 +186,15 @@ def git_dirty_paths(root=None) -> list:
             continue
         code, rest = line[:2], line[3:]
         path = rest.split(" -> ", 1)[-1] if " -> " in rest else rest
+
+        # Checked first, regardless of untracked ("??") vs modified status --
+        # a brand-new (never-committed) log is append-over-empty, same rule.
+        if path == _APPEND_ONLY_EXEMPT_RELPATH:
+            if _is_append_only_change(root, path):
+                continue
+            offending.append(path)
+            continue
+
         if code == "??":
             if path == _PHASE2_DIR_NAME or path.startswith(_PHASE2_DIR_NAME + "/"):
                 offending.append(path)
