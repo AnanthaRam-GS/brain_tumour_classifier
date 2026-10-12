@@ -20,7 +20,10 @@ import pandas as pd
 from btdl import config
 from btdl.cli.register_frozen import FROZEN_REGISTRATION_DIR_RELPATH
 from btdl.cli.unblinding_status import compute_status
+from btdl.comparison.baseline import load_baseline_test_predictions
+from btdl.comparison.loaders import ComparisonInputError, load_test_model
 from btdl.comparison.stats import (
+    paired_multi_seed_patient_bootstrap,
     seed_aggregate_calibration,
     seed_aggregate_headline,
     seed_aggregate_per_class,
@@ -29,11 +32,14 @@ from btdl.comparison.stats import (
 from btdl.contracts import CLASS_NAMES_BY_INDEX, label_to_index
 from btdl.data.roi_cache import open_roi_cache
 from btdl.data.split import SplitIntegrityError, load_split, validate_split
+from btdl.evaluation.metrics import full_metrics
 from btdl.models.registry import build_model, get_spec
 from btdl.preprocessing.model_input import to_model_input
 from btdl.preprocessing.resize import resize_roi
 from btdl.preprocessing.roi import compute_roi
 from btdl.runs import run_dir_for
+
+BASELINE_COMPARISON_METRICS = ("macro_f1", "balanced_accuracy", "meningioma_f1", "macro_ovr_auc")
 
 QA_DIR_RELPATH = "phase2/artifacts/qa"
 RESULTS_DIR_RELPATH = "phase2/artifacts/results"
@@ -346,28 +352,74 @@ def split_results(model: str, split: str) -> dict:
 
 
 def baseline_comparison(model: str) -> dict:
-    """Test-mode-only comparison against Phase 1's GLCM v2 baseline, read
-    from a previously written phase2/artifacts/comparison/comparison.json
-    (never recomputes the comparison itself)."""
+    """Test-mode-only comparison against Phase 1's GLCM v2 baseline,
+    computed directly from THIS model's own exported test-mode seeds
+    (phase2/artifacts/results/<model>/seed<seed>/) and the baseline's test
+    predictions -- no dependency on the cross-model
+    phase2/artifacts/comparison/comparison.json (which requires every
+    study model to be registered+tested first, via
+    cli.compare.py --mode test / unblinding_status). Reuses the same
+    comparison primitives cli/compare.py itself uses (btdl.comparison.
+    baseline/loaders/stats), just scoped to one model instead of the
+    whole study.
+
+    Returns a headline table (this model's seed mean +/- std vs. the
+    baseline's point value) and paired-difference bootstrap CIs (this
+    model's seed-averaged metric minus the baseline's, on identical
+    patient resamples), for macro_f1, balanced_accuracy, meningioma_f1,
+    and macro_ovr_auc."""
 
     repo_root = config.repo_root()
-    comparison_path = repo_root / "phase2" / "artifacts" / "comparison" / "comparison.json"
-    if not comparison_path.is_file():
-        return {
-            "available": False,
-            "note": "no comparison.json yet -- run cli/compare.py --mode test after unblinding",
-        }
+    try:
+        seeds_data = load_test_model(model, repo_root=repo_root)
+    except ComparisonInputError as exc:
+        return {"available": False, "note": str(exc)}
 
-    comparison = _read_json(comparison_path)
-    model_entry = comparison.get("models", {}).get(model)
-    if model_entry is None:
-        return {"available": False, "note": f"{model!r} not present in comparison.json"}
+    seeds_metrics = [d["metrics"] for d in seeds_data]
+    probs_by_seed = {d["seed"]: d["probs"] for d in seeds_data}
+    model_headline = seed_aggregate_headline(seeds_metrics)
+    model_per_class = seed_aggregate_per_class(seeds_metrics)
+
+    expected_sample_ids = set(seeds_data[0]["sample_ids"])
+    baseline_raw = load_baseline_test_predictions(expected_sample_ids, repo_root=repo_root)
+    baseline_metrics = full_metrics(baseline_raw["y_true_idx"], baseline_raw["probs"])
+    baseline_headline = seed_aggregate_headline([baseline_metrics])
+    baseline_per_class = seed_aggregate_per_class([baseline_metrics])
+
+    evaluation_cfg = config.load_contract("evaluation")
+    paired = paired_multi_seed_patient_bootstrap(
+        seeds_data[0]["y_true_idx"],
+        probs_by_seed,
+        {"baseline": baseline_raw["probs"]},
+        seeds_data[0]["patient_ids"],
+        n_resamples=evaluation_cfg["bootstrap"]["n_resamples"],
+        seed=evaluation_cfg["bootstrap"]["seed"],
+        alpha=evaluation_cfg["bootstrap"]["alpha"],
+    )
+
+    def _stats_for(name, headline, per_class):
+        if name == "meningioma_f1":
+            return per_class["meningioma"]["f1"]
+        if name == "macro_ovr_auc":
+            return headline["macro_auc"]
+        return headline[name]
+
+    headline_table = {}
+    for name in BASELINE_COMPARISON_METRICS:
+        model_stats = _stats_for(name, model_headline, model_per_class)
+        baseline_stats = _stats_for(name, baseline_headline, baseline_per_class)
+        headline_table[name] = {
+            "model_mean": model_stats["mean"],
+            "model_std": model_stats["std"],
+            "baseline": baseline_stats["mean"],
+        }
 
     return {
         "available": True,
-        "model": model_entry,
-        "baseline": comparison.get("baseline"),
-        "paired_vs_baseline": comparison.get("paired_vs_baseline", {}).get(model),
+        "model": model,
+        "baseline_name": baseline_raw["name"],
+        "headline": headline_table,
+        "paired_vs_baseline": {name: paired[name] for name in BASELINE_COMPARISON_METRICS},
     }
 
 

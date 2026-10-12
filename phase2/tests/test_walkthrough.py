@@ -186,24 +186,16 @@ def test_test_access_status_unregistered_model(fake_repo):
         assert seed_status["logged"] is False
 
 
-# ---- baseline_comparison ---------------------------------------------------------------------
+# ---- baseline_comparison (single-model, no comparison.json dependency; see
+# tests/test_walkthrough_final_path.py for the full available-data case) ----------------------
 
 
-def test_baseline_comparison_not_available_when_no_comparison_json(fake_repo):
+def test_baseline_comparison_not_available_when_not_exported(fake_repo):
+    # No export_results has ever run for this model -- load_test_model()
+    # raises ComparisonInputError, which baseline_comparison must turn into
+    # a graceful "not available" dict rather than propagating.
     result = walkthrough.baseline_comparison("tiny_cnn")
     assert result["available"] is False
-
-
-def test_baseline_comparison_reads_existing_comparison_json(fake_repo):
-    tmp_path, manifest, specs = fake_repo
-    comparison_dir = tmp_path / "phase2" / "artifacts" / "comparison"
-    comparison_dir.mkdir(parents=True)
-    (comparison_dir / "comparison.json").write_text(
-        json.dumps({"models": {"tiny_cnn": {"macro_f1": 0.9}}, "baseline": {"macro_f1": 0.8}})
-    )
-    result = walkthrough.baseline_comparison("tiny_cnn")
-    assert result["available"] is True
-    assert result["model"]["macro_f1"] == 0.9
 
 
 # ---- split_results / protocol_overview / example_predictions (need real runs: slow) ----------
