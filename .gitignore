@@ -46,3 +46,7 @@ phase2/.venv/
 phase2/runs/
 phase2/cache/
 *.egg-info/
+
+# Phase 2 walkthrough notebooks (demo runtime copies; generated notebooks are committed)
+phase2/notebooks/_live/
+**/.ipynb_checkpoints/
