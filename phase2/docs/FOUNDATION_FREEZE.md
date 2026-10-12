@@ -510,3 +510,69 @@ All green on a clean tree immediately before this work's final commit.
 `test_access_log.csv` remained header-only; no tracked files exist under
 `artifacts/comparison/` (test mode has not been run -- only val-preview,
 which writes to the gitignored `runs/_preview/`).
+
+## 11. D18 revised: registration before final test (branch `phase2/test-policy`)
+
+At the foundation owner's request (team schedule), the "simultaneous
+unblinding" cross-model readiness gate was removed from `cli/final_test.py`.
+D18 is retitled **"Registration before final test"** in `DECISIONS.md`: a
+model's final runs must be registered (`cli/register_frozen.py`,
+committed) before `final_test` may run for that model, but models are now
+tested **independently** -- there is no requirement to wait for the other
+four architectures. The registration gate itself (the checkpoint's sha256
+must match what was registered) is unchanged and still proves no run was
+retrained after its test.
+
+**Investigation (read-only, synthetic) before the change:**
+- A successful real `final_test` left the tree dirty (the appended
+  `test_access_log.csv` row was untracked), and a second `final_test` for
+  a different seed of the same model correctly refused on "tree not
+  clean" -- confirming the old behavior required a commit between every
+  seed's `final_test` call.
+- `cli/export_results.py` has **never** checked git-dirty at all -- it
+  succeeded even with an uncommitted log row present. The newly exported
+  `artifacts/results/<model>/seed<k>/` files themselves are untracked and
+  under `phase2/`, so they WOULD make a subsequent `final_test` call's
+  clean-tree check fail (same reason as the log) -- but `export_results`
+  itself was never the thing enforcing cleanliness.
+- `tests/test_final_test_cli.py::test_real_mode_refuses_repeated_run` was
+  the existing test that explicitly committed the log between two
+  `final_test` calls, specifically to get a clean tree before testing the
+  "already logged" refusal in isolation.
+
+**B2 — append-only exemption (`config.git_dirty_paths`):**
+`phase2/artifacts/test_access_log.csv` is exempt from the dirty-tree check
+if and only if its working-tree content is an exact byte prefix extension
+of HEAD's content (treating a never-committed log as append-over-empty)
+AND every appended line parses as a CSV row with the same column count as
+the header. An edit, a deletion, a row reordering, or a malformed
+appended row is NOT exempt -- and no other file gets this exemption. This
+single change means `final_test` can run once per final seed (3 calls)
+with zero commits in between; `export_results`'s lack of any dirty check
+meant it needed no change at all.
+
+**Gates removed:** the `unblinding_status` READY check in
+`cli/final_test.py`'s real-mode gate list. **Gates kept, unchanged:** not
+reference_only; seed in `final_seeds`; selection exists and lr matches;
+`FROZEN.json` sha matches `best.pt`; registered in
+`artifacts/frozen/<model>.json` with this seed's identical
+`best_pt_sha256`; contract hash matches; `contract_conformant`; clean
+tree (now honoring the append-only exemption); no prior access-log entry
+for this run.
+
+**`cli/unblinding_status.py`:** CLI name kept for compatibility; now
+prints a "Registration status" header and states explicitly that it gates
+only `cli/compare.py --mode test`, not `final_test`.
+
+Foundation lock regenerated, `lock_version` bumped **1.2.0 → 1.3.0**.
+`contract_dir_sha256` unchanged.
+
+### Test counts (as of this revision)
+
+- Phase 2 full suite (including slow + network): **570 passed**, 824.40s
+- Phase 1 suite: **234 passed**, 19.01s
+
+All green on a clean tree immediately before this work's final commit.
+The real `test_access_log.csv` remained header-only throughout (all new
+test coverage uses synthetic fixtures; `final_test` was never run on the
+real test split in this work).
