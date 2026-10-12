@@ -576,3 +576,29 @@ All green on a clean tree immediately before this work's final commit.
 The real `test_access_log.csv` remained header-only throughout (all new
 test coverage uses synthetic fixtures; `final_test` was never run on the
 real test split in this work).
+
+## 12. `final_test --check-only` readiness gate (branch `phase2/walkthrough-notebooks`)
+
+Added `check_final_test_readiness()` / `--check-only` to
+`cli/final_test.py`: runs every real-mode gate in the same order as a
+real run, but (a) never stops at the first failing gate -- every gate is
+evaluated and reported, so a presenter can see the full picture rather
+than one error at a time -- and (b) never constructs a dataset, loads a
+model, or writes anything (no log row, no `eval/test/`, no file of any
+kind; verified by diffing the run dir and the log byte-for-byte before
+and after). `--check-only` is mutually exclusive with
+`--confirm-final-test` and incompatible with `--rehearsal`.
+
+This was motivated by the walkthrough notebooks (`phase2/notebooks/`):
+section 9a now runs `--check-only` for every final seed as a demo-day
+preflight, in both rehearsal and final mode, so a presenter can confirm
+readiness without risking an accidental real test-split access.
+
+`TEAM_GUIDE.md` §6 (step 7) now recommends running `--check-only` before
+each real `final_test` call. No gate's behavior changed -- this is purely
+an additive, side-effect-free readiness check layered on top of the
+existing (unchanged) gate logic.
+
+Foundation lock regenerated, `lock_version` bumped **1.3.0 → 1.4.0**
+(`cli/final_test.py` is in the locked `cli/` subtree). `contract_dir_sha256`
+unchanged.

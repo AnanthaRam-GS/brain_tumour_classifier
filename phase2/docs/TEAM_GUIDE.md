@@ -236,7 +236,11 @@ git commit -m "results(<your_model>): register frozen final runs"
 #    the other four architectures -- once this is merged to main, you may
 #    test your model immediately.
 
-# 7. For EACH of the three final runs, exactly once each:
+# 7. For EACH of the three final runs: check readiness first (recommended --
+#    it runs every real-mode gate and writes nothing, so it's always safe
+#    to run before you've decided you're really ready), then run for real,
+#    exactly once each:
+.venv/bin/python -m btdl.cli.final_test --run-dir $RUN --check-only
 .venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test
 .venv/bin/python -m btdl.cli.export_results --run-dir $RUN
 #    No commit is needed between these calls -- see "D18 — registration
@@ -265,6 +269,15 @@ four architectures are registered yet. `--rehearsal` is never affected by
 any of this (it never touches the test split, and works even before
 you've registered anything). `export_results` independently re-checks
 the same registration before copying anything.
+
+**`--check-only` (readiness check, writes nothing).** `final_test
+--run-dir $RUN --check-only` runs every real-mode gate above, in the same
+order, prints PASS/FAIL for each one, and exits non-zero if any gate
+fails -- but it never constructs the test dataset, loads the model, or
+writes anything (no log row, no `eval/test/`, no file of any kind). Run
+it as many times as you like before your real final-test call; it is
+mutually exclusive with `--confirm-final-test` and incompatible with
+`--rehearsal` (rehearsal has no real-mode gates to check).
 
 **Ordering (step 7, no intermediate commits needed):** run `final_test`
 for all three final seeds first, then `export_results` for each, then

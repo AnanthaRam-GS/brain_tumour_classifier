@@ -6,7 +6,7 @@ import subprocess
 import pytest
 
 from btdl import config
-from btdl.cli.final_test import FinalTestError, run_final_test
+from btdl.cli.final_test import FinalTestError, check_final_test_readiness, run_final_test
 from btdl.cli.freeze import run_freeze
 from btdl.cli.register_frozen import run_register_frozen
 from btdl.evaluation.reload_check import ReloadEquivalenceError
@@ -525,3 +525,129 @@ def test_non_append_edit_to_log_makes_tree_dirty(trained_run, monkeypatch):
     run_dir1 = run_dir_for("tiny_cnn", lr, seed1, smoke=False)
     with pytest.raises(FinalTestError, match="clean"):
         run_final_test(run_dir1, confirm_final_test=True, device=device, batch_size=2)
+
+
+# ---- --check-only: every real-mode gate, writes nothing, never stops at the first failure ----
+
+
+def _gate_map(results):
+    return {result["name"]: result["ok"] for result in results}
+
+
+@pytest.mark.slow
+def test_check_only_all_gates_pass_on_a_fully_registered_run(trained_run, monkeypatch):
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+    _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
+
+    results = check_final_test_readiness(run_dir, repo_root=tmp_path)
+    gates = _gate_map(results)
+    assert all(gates.values()), results
+    assert set(gates) == {
+        "frozen_json_exists",
+        "best_pt_sha256_matches_frozen",
+        "contract_hash_matches",
+        "metadata_exists",
+        "contract_conformant",
+        "working_tree_clean",
+        "not_reference_only",
+        "seed_in_final_seeds",
+        "selection_file_exists",
+        "lr_matches_selection",
+        "not_already_logged",
+        "frozen_registration_exists",
+        "seed_registered_in_frozen",
+        "checkpoint_matches_registration",
+    }
+
+
+@pytest.mark.slow
+def test_check_only_reports_each_failing_gate_without_stopping_at_the_first(trained_run, monkeypatch):
+    # No selection file, no registration -- both the base provenance gates
+    # (frozen, sha, contract, conformant, clean) and not_reference_only/
+    # seed_in_final_seeds must still all PASS; only the gates that genuinely
+    # depend on the missing files must FAIL, and every one of them is
+    # still reported (not short-circuited after the first failure).
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+
+    results = check_final_test_readiness(run_dir, repo_root=tmp_path)
+    gates = _gate_map(results)
+
+    assert gates["frozen_json_exists"] is True
+    assert gates["best_pt_sha256_matches_frozen"] is True
+    assert gates["contract_hash_matches"] is True
+    assert gates["metadata_exists"] is True
+    assert gates["contract_conformant"] is True
+    assert gates["working_tree_clean"] is True
+    assert gates["not_reference_only"] is True
+    assert gates["seed_in_final_seeds"] is True
+
+    assert gates["selection_file_exists"] is False
+    assert gates["lr_matches_selection"] is False
+    assert gates["frozen_registration_exists"] is False
+    assert gates["seed_registered_in_frozen"] is False
+    assert gates["checkpoint_matches_registration"] is False
+    # not_already_logged is independent of selection/registration -- the
+    # log is empty, so this one still passes even though others fail.
+    assert gates["not_already_logged"] is True
+
+
+def test_check_only_never_constructs_roi_dataset(trained_run, monkeypatch):
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+
+    def _explode(*args, **kwargs):
+        raise AssertionError("check-only must never construct a RoiDataset")
+
+    monkeypatch.setattr("btdl.data.dataset.RoiDataset", _explode)
+    monkeypatch.setattr("btdl.cli.final_test.RoiDataset", _explode)
+
+    # Should complete without ever calling the patched (exploding) RoiDataset.
+    check_final_test_readiness(run_dir, repo_root=tmp_path)
+
+
+@pytest.mark.slow
+def test_check_only_writes_nothing(trained_run, monkeypatch):
+    tmp_path, run_dir, model, device = _frozen_run(trained_run)
+    _enable_real_mode(monkeypatch)
+    _write_matching_selection(tmp_path, run_dir)
+    _make_unblinding_ready(tmp_path, run_dir, device)
+
+    log_path = tmp_path / "phase2" / "artifacts" / "test_access_log.csv"
+    log_before = log_path.read_bytes() if log_path.is_file() else None
+    run_dir_files_before = {
+        path: path.read_bytes() for path in sorted(run_dir.rglob("*")) if path.is_file()
+    }
+
+    check_final_test_readiness(run_dir, repo_root=tmp_path)
+
+    log_after = log_path.read_bytes() if log_path.is_file() else None
+    assert log_after == log_before
+
+    run_dir_files_after = {path: path.read_bytes() for path in sorted(run_dir.rglob("*")) if path.is_file()}
+    assert run_dir_files_after == run_dir_files_before
+    assert not (run_dir / "eval" / "test").exists()
+
+
+def test_check_only_and_confirm_final_test_are_mutually_exclusive(trained_run, monkeypatch):
+    from btdl.cli import final_test as final_test_cli
+
+    tmp_path, run_dir, model, device = trained_run
+    monkeypatch.setattr(
+        "sys.argv",
+        ["final_test.py", "--run-dir", str(run_dir), "--check-only", "--confirm-final-test"],
+    )
+    with pytest.raises(SystemExit):
+        final_test_cli.main()
+
+
+def test_check_only_and_rehearsal_are_incompatible(trained_run, monkeypatch):
+    from btdl.cli import final_test as final_test_cli
+
+    tmp_path, run_dir, model, device = trained_run
+    monkeypatch.setattr(
+        "sys.argv", ["final_test.py", "--run-dir", str(run_dir), "--check-only", "--rehearsal"]
+    )
+    with pytest.raises(SystemExit):
+        final_test_cli.main()
