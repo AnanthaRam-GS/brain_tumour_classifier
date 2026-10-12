@@ -23,10 +23,10 @@ experimentation:
 - evaluation (`src/btdl/evaluation/`, `cli/evaluate.py`,
   `cli/final_test.py`)
 - test-set access policy (D13, D17 in `DECISIONS.md`)
-- the simultaneous-unblinding order (D18 in `DECISIONS.md`) — see §6:
-  `final_test` (without `--rehearsal`) runs for any model only after the
-  foundation owner announces unblinding, once ALL FIVE architectures have
-  frozen their final runs
+- the registration-before-test gate (D18 in `DECISIONS.md`) — see §6:
+  `final_test` (without `--rehearsal`) runs for a model only once that
+  model's own frozen runs are registered (`cli/register_frozen.py`,
+  committed); you do NOT need to wait for the other four architectures
 
 `python -m btdl.cli.lock --check` fails loudly (and CI/your own test run
 will fail) if any of this changes without a regenerated, reviewed lock —
@@ -228,59 +228,73 @@ RUN=runs/<your_model>/lr<selected_lr>_seed<seed>
 .venv/bin/python -m btdl.cli.efficiency --run-dir $RUN
 .venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test --rehearsal
 
-# 6. Once all three final runs are frozen + rehearsed, register them (D18)
-#    and open a PR. This is the ONLY thing you commit before unblinding.
+# 6. Once all three final runs are frozen + rehearsed, register them (D18).
 .venv/bin/python -m btdl.cli.register_frozen --model <your_model>
 git add artifacts/selection/<your_model>.json artifacts/frozen/<your_model>.json
 git commit -m "results(<your_model>): register frozen final runs"
-#    Open a PR with exactly these two files. STOP HERE -- do NOT run
-#    final_test without --rehearsal yet; it is now also enforced in code
-#    (see "D18 enforcement" below) and will refuse until unblinding_status
-#    is READY, not just ask nicely.
+#    Open a PR with exactly these two files. You do NOT need to wait for
+#    the other four architectures -- once this is merged to main, you may
+#    test your model immediately.
 
-# 7. Wait for the foundation owner to announce unblinding. Then:
-git fetch origin && git switch main && git pull
-.venv/bin/python -m btdl.cli.unblinding_status   # must print READY, exit 0
-git switch <your-branch> && git merge main        # pulls in every model's registration
-
-# 8. Only now, for EACH of the three final runs:
+# 7. For EACH of the three final runs, exactly once each:
 .venv/bin/python -m btdl.cli.final_test --run-dir $RUN --confirm-final-test
 .venv/bin/python -m btdl.cli.export_results --run-dir $RUN
-#    Open a PR with artifacts/results/<your_model>/.
+#    No commit is needed between these calls -- see "D18 — registration
+#    before final test" below.
+
+# 8. Commit the log and your results together, and open a PR.
+git add artifacts/test_access_log.csv artifacts/results/<your_model>/
+git commit -m "results(<your_model>): final test results"
 ```
 
 **The test split is used exactly once per final run, by `final_test`
 (without `--rehearsal`).** Never re-run `final_test` on the same `run_dir`
 (it refuses a repeat run anyway, via `artifacts/test_access_log.csv`), and
-never retrain or retune after seeing test results — that silently turns
-the test split into a validation set.
+**never retrain or re-run training after seeing test results** — that
+silently turns the test split into a validation set and invalidates the
+whole point of the gate.
 
-**D18 — simultaneous unblinding (enforced in code).** `final_test`
-(without `--rehearsal`) now actively refuses to run unless: (a) your
-model has a frozen registration (`artifacts/frozen/<your_model>.json`,
-written by step 6) whose recorded `best_pt_sha256` matches the exact
-checkpoint being tested, and (b) `python -m btdl.cli.unblinding_status`
-reports READY -- which requires EVERY study model to have registered all
-three final seeds against the current contract. `--rehearsal` is never
-affected by any of this (it never touches the test split). This means you
-genuinely cannot jump ahead of the other four architectures by accident;
-the tool refuses, it doesn't just ask you not to. `export_results`
-independently re-checks the same registration before copying anything.
+**D18 — registration before final test (enforced in code).** `final_test`
+(without `--rehearsal`) refuses to run unless your model has a frozen
+registration (`artifacts/frozen/<your_model>.json`, written and committed
+in step 6) whose recorded `best_pt_sha256` matches the exact checkpoint
+being tested. That is the ONLY cross-model condition -- there is no
+"wait for everyone else" gate: you may run `final_test` for your model as
+soon as your own registration is merged, regardless of whether the other
+four architectures are registered yet. `--rehearsal` is never affected by
+any of this (it never touches the test split, and works even before
+you've registered anything). `export_results` independently re-checks
+the same registration before copying anything.
+
+**Ordering (step 7, no intermediate commits needed):** run `final_test`
+for all three final seeds first, then `export_results` for each, then
+commit the log and the results together (step 8) in one PR.
+`phase2/artifacts/test_access_log.csv` is specifically exempt from the
+clean-tree check while its only changes are well-formed appended rows (an
+exact byte prefix of what's committed, plus rows with the right column
+count) -- so three `final_test` calls in a row do not need a commit
+between them. Any OTHER change to the log (an edit, a deletion, rows
+reordered, a malformed row) is still treated as dirty, same as before.
+`export_results` has never required a clean tree.
 
 The efficiency numbers used in the final cross-model comparison are
 re-measured centrally by the foundation owner, for all five architectures
 together on one machine (`cli/efficiency_central.py`); your own
 `efficiency.json` from step 5 is kept as provenance but is not what gets
-compared.
+compared. `python -m btdl.cli.unblinding_status` (name kept for backward
+compatibility) still exists, but it no longer gates `final_test` -- it
+only reports whether the full five-model comparison
+(`cli/compare.py --mode test`) is ready to run, which legitimately does
+need every architecture present.
 
 **Getting these tools.** If your branch predates this foundation update,
-fetch and merge the `phase2-foundation-v1.1` tag to pick up
-`register_frozen`/`unblinding_status`/the `final_test`/`export_results`
-D18 gates/`efficiency_central` without losing your work:
+fetch and merge the latest foundation tag to pick up `register_frozen`/
+`final_test`'s registration gate/the append-only log exemption without
+losing your work:
 
 ```bash
 git fetch --tags
-git merge phase2-foundation-v1.1
+git merge phase2-foundation-v1.3
 ```
 
 Your existing frozen runs stay valid -- `configs/contract/` did not

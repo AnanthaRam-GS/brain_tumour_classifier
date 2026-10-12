@@ -5,7 +5,9 @@ requirement below is checked BEFORE any test data is loaded:
   - FROZEN.json exists and best.pt's sha256 matches it
   - the checkpoint's contract hash equals the CURRENT contract
   - metadata.contract_conformant is true
-  - the current working tree is clean
+  - the current working tree is clean (test_access_log.csv is exempt from
+    this when its only changes are well-formed appended rows -- see
+    config.git_dirty_paths / D18)
 Real mode (default) additionally requires:
   - this run has no prior entry in the test-access log
   - the model is NOT reference_only (tiny_cnn, for example, can never pass
@@ -13,14 +15,19 @@ Real mode (default) additionally requires:
   - the run's lr equals the selected lr in
     phase2/artifacts/selection/<model>.json, and its seed is in
     training.yaml's final_seeds
+  - the model is registered frozen (cli/register_frozen.py) for the EXACT
+    checkpoint being tested (D18: "registration before final test" --
+    registering a model's final runs, and committing that registration,
+    proves no run was retrained after its test; models may then be tested
+    independently of each other, with no cross-model readiness gate)
   Then predicts on RoiDataset("test", ..., allow_test=True) and writes
   R/eval/test/, and appends one row to the tracked
   phase2/artifacts/test_access_log.csv.
 
 --rehearsal (D17) runs the IDENTICAL pipeline on the VALIDATION split
 instead, writing R/eval/rehearsal_val/. It still requires FROZEN and
-enforces every provenance gate above, but the selection and
-reference_only gates are waived (so tiny_cnn, or an unselected lr/seed,
+enforces every provenance gate above, but the selection, reference_only,
+and registration gates are waived (so tiny_cnn, or an unselected lr/seed,
 can rehearse). It NEVER writes the access log and NEVER constructs the
 test dataset -- allow_test=True appears nowhere outside the real path
 (see test_no_allow_test_outside_final_test.py). Also checks reload
@@ -37,7 +44,6 @@ from pathlib import Path
 
 from btdl import config
 from btdl.cli.register_frozen import FROZEN_REGISTRATION_DIR_RELPATH
-from btdl.cli.unblinding_status import compute_status
 from btdl.data.dataset import RoiDataset
 from btdl.data.loader import make_loader
 from btdl.evaluation.plots import plot_confusion_matrix, plot_roc_curves, plot_training_curves
@@ -177,11 +183,14 @@ def _check_real_mode_gates(run_dir, metadata, repo_root):
             f"{run_dir_rel} already has a test-access log entry -- final_test may run only once per run"
         )
 
-    # D18: simultaneous unblinding. This run's model must be registered
-    # frozen (cli/register_frozen.py) for the EXACT checkpoint being used,
-    # and every study model must be similarly registered before ANY real
-    # final_test may run -- otherwise one model's test result could shape
-    # decisions still being made about another model still in progress.
+    # D18 (revised): registration before final test. This run's model must
+    # be registered frozen (cli/register_frozen.py) for the EXACT
+    # checkpoint being used -- that registration, once committed, proves
+    # no run was retrained after its test. Unlike the earlier
+    # "simultaneous unblinding" policy, models may be tested independently
+    # of each other: there is no cross-model readiness gate here (see
+    # cli/unblinding_status.py, which now only gates the full five-model
+    # comparison via cli/compare.py --mode test).
     frozen_registration_path = repo_root / FROZEN_REGISTRATION_DIR_RELPATH / f"{metadata['model_name']}.json"
     if not frozen_registration_path.is_file():
         raise FinalTestError(
@@ -203,17 +212,8 @@ def _check_real_mode_gates(run_dir, metadata, repo_root):
         raise FinalTestError(
             f"refusing: this run's best.pt sha256 ({actual_sha256}) does not match the frozen "
             f"registration for seed {metadata.get('seed')} ({registered_sha}) -- the checkpoint changed "
-            "since registration; re-run register_frozen (D18 requires every architecture to register the "
-            "SAME checkpoint that gets final-tested)"
-        )
-
-    status = compute_status()
-    if not status["ready"]:
-        not_ready = [row["model_name"] for row in status["models"] if not row["ready"]]
-        raise FinalTestError(
-            f"refusing: unblinding_status is NOT READY -- model(s) not yet registered frozen: {not_ready} "
-            "(D18: final_test may not run for any model until ALL study models are frozen and the "
-            "foundation owner announces unblinding)"
+            "since registration; re-run register_frozen (D18 requires registering the SAME checkpoint "
+            "that gets final-tested)"
         )
 
 

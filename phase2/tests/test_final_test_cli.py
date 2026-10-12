@@ -307,10 +307,13 @@ def test_real_mode_refuses_seed_not_in_registration(trained_run, monkeypatch):
 
 
 @pytest.mark.slow
-def test_real_mode_refuses_when_not_ready(trained_run, monkeypatch):
-    # A study.yaml with TWO models, where only tiny_cnn (this run's model)
-    # gets registered -- unblinding_status is NOT READY because the other
-    # study model never registers.
+@pytest.mark.slow
+def test_real_mode_succeeds_when_only_this_model_is_registered(trained_run, monkeypatch):
+    # D18 revised: a study.yaml with TWO models, where only tiny_cnn (this
+    # run's model) is registered -- unblinding_status/"Registration status"
+    # is NOT READY overall (the other study model never registers), but
+    # final_test for tiny_cnn must succeed anyway: models are now tested
+    # independently, with no cross-model readiness gate.
     tmp_path, run_dir, model, device = _frozen_run(trained_run)
     _enable_real_mode(monkeypatch)
 
@@ -322,14 +325,19 @@ def test_real_mode_refuses_when_not_ready(trained_run, monkeypatch):
     _write_matching_selection(tmp_path, run_dir)
     _make_unblinding_ready(tmp_path, run_dir, device)
 
-    with pytest.raises(FinalTestError, match="NOT READY"):
-        run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+    from btdl.cli.unblinding_status import compute_status
+
+    assert compute_status()["ready"] is False  # sanity: overall status genuinely NOT READY
+
+    metrics = run_final_test(run_dir, confirm_final_test=True, device=device, batch_size=2)
+    assert metrics["split"] == "test"
 
 
 @pytest.mark.slow
-def test_rehearsal_still_works_when_not_ready(trained_run, monkeypatch):
-    # --rehearsal must never be blocked by D18 -- it never touches the
-    # test split or the access log, so there is nothing to protect.
+def test_rehearsal_still_works_when_unregistered(trained_run, monkeypatch):
+    # --rehearsal must never be blocked by the registration gate -- it
+    # never touches the test split or the access log, so there is nothing
+    # to protect.
     tmp_path, run_dir, model, device = _frozen_run(trained_run)
     _enable_real_mode(monkeypatch)
 
@@ -408,3 +416,112 @@ def test_reload_mismatch_is_detected(trained_run):
 
     with pytest.raises(ReloadEquivalenceError):
         run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=True, batch_size=2)
+
+
+# ---- B2/B3: append-only test-access log; no intermediate commits needed -------------------
+
+
+def _fully_ready_for_export(trained_run, monkeypatch, model_name="tiny_cnn"):
+    """Evaluate + freeze + efficiency + rehearsal for the trained run,
+    duplicate to every final_seed, register frozen -- everything
+    final_test and export_results need, for all 3 final seeds."""
+
+    from btdl.cli.efficiency import run_efficiency
+    from btdl.cli.evaluate import run_evaluate
+    from btdl.cli.register_frozen import run_register_frozen
+
+    tmp_path, run_dir, model, device = trained_run
+    run_evaluate(run_dir, split="val", device=device, batch_size=2)
+    run_freeze(run_dir)
+    run_efficiency(run_dir, device=device)
+    _enable_real_mode(monkeypatch, model_name)
+    _write_matching_selection(tmp_path, run_dir, model_name)
+    run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=True, batch_size=2)
+
+    import shutil
+
+    from btdl.runs import run_dir_for
+
+    with (run_dir / "metadata.json").open() as handle:
+        metadata = json.load(handle)
+    lr, own_seed = metadata["lr"], metadata["seed"]
+    training_cfg = config.load_contract("training")
+    for seed in training_cfg["final_seeds"]:
+        if seed == own_seed:
+            continue
+        target_dir = run_dir_for(model_name, lr, seed, smoke=False)
+        if target_dir.exists():
+            continue
+        shutil.copytree(run_dir, target_dir)
+        meta_path = target_dir / "metadata.json"
+        with meta_path.open() as handle:
+            meta = json.load(handle)
+        meta["seed"] = seed
+        with meta_path.open("w") as handle:
+            json.dump(meta, handle, indent=2, sort_keys=True)
+
+    run_register_frozen(model_name)
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "ready for export"], cwd=tmp_path, check=True, capture_output=True)
+
+    return tmp_path, device, training_cfg["final_seeds"], lr
+
+
+@pytest.mark.slow
+def test_final_test_then_export_sequence_needs_no_intermediate_commits(trained_run, monkeypatch):
+    from btdl.cli.export_results import run_export_results
+    from btdl.runs import run_dir_for
+
+    tmp_path, device, final_seeds, lr = _fully_ready_for_export(trained_run, monkeypatch)
+
+    # final_test for all 3 seeds, in order, with NO commit between calls.
+    for seed in final_seeds:
+        seed_run_dir = run_dir_for("tiny_cnn", lr, seed, smoke=False)
+        metrics = run_final_test(seed_run_dir, confirm_final_test=True, device=device, batch_size=2)
+        assert metrics["split"] == "test"
+
+    log_path = tmp_path / "phase2" / "artifacts" / "test_access_log.csv"
+    with log_path.open(newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 3  # one row per seed, all appended without any commit
+
+    # export_results for all 3 seeds, still with no commit anywhere above.
+    for seed in final_seeds:
+        seed_run_dir = run_dir_for("tiny_cnn", lr, seed, smoke=False)
+        dest_dir = run_export_results(seed_run_dir)
+        assert dest_dir.is_dir()
+
+    # Only now commit everything together (B3's documented ordering).
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log + results"], cwd=tmp_path, check=True, capture_output=True)
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True)
+    assert status.stdout == ""
+
+
+@pytest.mark.slow
+def test_non_append_edit_to_log_makes_tree_dirty(trained_run, monkeypatch):
+    tmp_path, device, final_seeds, lr = _fully_ready_for_export(trained_run, monkeypatch)
+    from btdl.runs import run_dir_for
+
+    seed0, seed1 = final_seeds[0], final_seeds[1]
+    run_dir0 = run_dir_for("tiny_cnn", lr, seed0, smoke=False)
+    run_final_test(run_dir0, confirm_final_test=True, device=device, batch_size=2)
+
+    # Commit so there is a real, COMMITTED log to compare the next edit
+    # against (editing a still-uncommitted file is indistinguishable from
+    # writing a fresh well-formed file -- the exemption is about not
+    # rewriting COMMITTED history, not about the file's age).
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log seed0"], cwd=tmp_path, check=True, capture_output=True)
+
+    log_path = tmp_path / "phase2" / "artifacts" / "test_access_log.csv"
+    lines = log_path.read_text().splitlines(keepends=True)
+    # Rewrite the (committed) header line in place (an edit, not an
+    # append) -- no longer an exact byte prefix of HEAD, so this must
+    # dirty the tree.
+    lines[0] = lines[0].replace("run_dir", "RUN_DIR")
+    log_path.write_text("".join(lines))
+
+    run_dir1 = run_dir_for("tiny_cnn", lr, seed1, smoke=False)
+    with pytest.raises(FinalTestError, match="clean"):
+        run_final_test(run_dir1, confirm_final_test=True, device=device, batch_size=2)

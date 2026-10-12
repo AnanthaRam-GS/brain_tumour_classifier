@@ -1,12 +1,19 @@
 """python -m btdl.cli.unblinding_status
 
-Prints one row per study model: whether a selection file and a frozen
-registration exist, and which final_seeds are registered. Overall READY
-(exit 0) only when EVERY study model has a valid registration covering
-every seed in training.yaml's final_seeds AND whose recorded
-contract_dir_sha256 equals the current contract (exit 1 otherwise, "NOT
-READY"). See D18 -- final_test (real mode) refuses to run until this is
-READY.
+Despite the CLI name (kept for backward compatibility -- it predates D18's
+revision), this no longer gates `final_test`. A model's final_test now
+runs as soon as THAT model is registered frozen (cli/register_frozen.py),
+independent of every other model's status (D18: "registration before
+final test"). READY here gates only the full five-model comparison
+(cli/compare.py --mode test), which legitimately needs every study model
+present.
+
+Prints one row per study model ("Registration status"): whether a
+selection file and a frozen registration exist, and which final_seeds are
+registered. Overall READY (exit 0) only when EVERY study model has a
+valid registration covering every seed in training.yaml's final_seeds AND
+whose recorded contract_dir_sha256 equals the current contract (exit 1
+otherwise, "NOT READY").
 """
 
 import json
@@ -58,6 +65,8 @@ def compute_status() -> dict:
 def main():
     status = compute_status()
 
+    print("Registration status")
+    print("(gates cli.compare --mode test only -- cli.final_test no longer waits on this)")
     header = f"{'model':<20}{'selection':<12}{'frozen':<10}{'seeds':<20}{'contract_ok':<14}{'ready'}"
     print(header)
     for row in status["models"]:

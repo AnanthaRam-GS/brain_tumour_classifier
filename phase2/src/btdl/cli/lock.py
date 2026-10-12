@@ -30,7 +30,7 @@ from pathlib import Path
 
 from btdl import config
 
-LOCK_VERSION = "1.2.0"
+LOCK_VERSION = "1.3.0"
 LOCK_RELPATH = "phase2/artifacts/contract/foundation_lock.json"
 
 _BTDL_SRC_RELPATH = "phase2/src/btdl"

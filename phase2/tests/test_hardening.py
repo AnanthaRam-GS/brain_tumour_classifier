@@ -73,6 +73,108 @@ def test_tracked_file_staged_or_deleted_dirties(fake_repo):
     assert "split.csv" in paths
 
 
+# ---- B2: test-access log is exempt from the dirty-tree check when append-only ------------
+
+
+_LOG_RELPATH = "phase2/artifacts/test_access_log.csv"
+
+
+def test_brand_new_well_formed_log_is_not_dirty(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    log_path = tmp_path / _LOG_RELPATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text("run_dir,model_name,lr,seed\nruns/a,tiny_cnn,0.001,42\n")
+    assert config.git_dirty_paths(tmp_path) == []
+
+
+def test_second_append_to_committed_log_is_not_dirty(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    log_path = tmp_path / _LOG_RELPATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text("run_dir,model_name,lr,seed\nruns/a,tiny_cnn,0.001,42\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log row 1"], cwd=tmp_path, check=True, capture_output=True)
+
+    with log_path.open("a") as handle:
+        handle.write("runs/b,tiny_cnn,0.001,43\n")
+    assert config.git_dirty_paths(tmp_path) == []
+
+
+def test_editing_committed_log_content_is_dirty(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    log_path = tmp_path / _LOG_RELPATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text("run_dir,model_name,lr,seed\nruns/a,tiny_cnn,0.001,42\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log row 1"], cwd=tmp_path, check=True, capture_output=True)
+
+    log_path.write_text("run_dir,model_name,lr,seed\nruns/EDITED,tiny_cnn,0.001,42\n")
+    assert config.git_dirty_paths(tmp_path) == [_LOG_RELPATH]
+
+
+def test_deleting_committed_log_is_dirty(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    log_path = tmp_path / _LOG_RELPATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text("run_dir,model_name,lr,seed\nruns/a,tiny_cnn,0.001,42\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log row 1"], cwd=tmp_path, check=True, capture_output=True)
+
+    log_path.unlink()
+    assert config.git_dirty_paths(tmp_path) == [_LOG_RELPATH]
+
+
+def test_malformed_appended_row_is_dirty(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    log_path = tmp_path / _LOG_RELPATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text("run_dir,model_name,lr,seed\nruns/a,tiny_cnn,0.001,42\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log row 1"], cwd=tmp_path, check=True, capture_output=True)
+
+    with log_path.open("a") as handle:
+        handle.write("runs/b,tiny_cnn\n")  # wrong column count
+    assert config.git_dirty_paths(tmp_path) == [_LOG_RELPATH]
+
+
+def test_reordered_rows_is_dirty(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    log_path = tmp_path / _LOG_RELPATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text(
+        "run_dir,model_name,lr,seed\nruns/a,tiny_cnn,0.001,42\nruns/b,tiny_cnn,0.001,43\n"
+    )
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "log rows"], cwd=tmp_path, check=True, capture_output=True)
+
+    # Swap the two existing rows -- same bytes overall, not a byte prefix.
+    log_path.write_text(
+        "run_dir,model_name,lr,seed\nruns/b,tiny_cnn,0.001,43\nruns/a,tiny_cnn,0.001,42\n"
+    )
+    assert config.git_dirty_paths(tmp_path) == [_LOG_RELPATH]
+
+
+def test_other_files_are_never_exempt(fake_repo):
+    # No other exemptions -- a different file under phase2/artifacts/ with
+    # an identical append pattern is still flagged.
+    tmp_path, manifest, specs = fake_repo
+    _git_init_clean_repo(tmp_path)
+    other_path = tmp_path / "phase2" / "artifacts" / "not_the_log.csv"
+    other_path.write_text("a,b\n1,2\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "other file"], cwd=tmp_path, check=True, capture_output=True)
+
+    with other_path.open("a") as handle:
+        handle.write("3,4\n")
+    assert config.git_dirty_paths(tmp_path) == ["phase2/artifacts/not_the_log.csv"]
+
+
 # ---- A2: cache dir override -------------------------------------------------------------
 
 

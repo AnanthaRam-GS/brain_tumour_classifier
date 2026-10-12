@@ -205,26 +205,32 @@ the five final models.
 debugged repeatedly during development without spending "looks at the test
 set" budget on anything other than the five final, frozen models.
 
-## D18 — Simultaneous unblinding
+## D18 — Registration before final test
 
-**Decision:** `final_test` is run for any model only after ALL five
-architectures have completed their protocol runs (grid search, selection,
-final seeds) and frozen their final runs; the foundation owner announces
-unblinding, and all five final tests are then run without further changes
-to any model. Efficiency figures used in the cross-model comparison are
-measured centrally, on one machine, for all five architectures (CPU and
-the owner's accelerator); the per-run `efficiency.json` files produced
-during each model's own development remain as provenance but are not the
-comparison's source of truth.
+**Decision:** A model's final runs must be **registered**
+(`cli/register_frozen.py`, with the registration file committed) before
+`final_test` may run for that model. Once registered, a model may be
+tested **independently** of every other model -- there is no requirement
+to wait for the other four architectures. Efficiency figures used in the
+cross-model comparison are still measured centrally, on one machine, for
+all five architectures (CPU and the owner's accelerator); the per-run
+`efficiency.json` files produced during each model's own development
+remain as provenance but are not the comparison's source of truth.
 
-**Rationale:** No test result can influence any modelling decision for any
-architecture (the whole point of D13/D17's test gate) -- running
-`final_test` for one model before another is even frozen would let that
-earlier result shape later architecture choices, defeating the gate.
-Measuring efficiency centrally, on one machine, makes the five
-architectures' efficiency numbers directly comparable; per-developer
-`efficiency.json` files vary by whatever machine/load each person trained
-on and are not comparable to each other.
+**Rationale:** The training protocol (grid search, selection, final
+seeds) is fixed before any model is trained, so a test result cannot feed
+back into selection for that model or any other -- the thing D13/D17's
+test gate exists to prevent. What matters is that the exact checkpoint
+being tested is provably the one that was frozen: the committed
+registration hash (`best_pt_sha256` per seed) proves no run was retrained
+after its test, which is the real integrity property, not the relative
+order in which different teammates happen to finish. Requiring every
+architecture to be ready before any of them can be tested (the earlier
+"simultaneous unblinding" policy) was removed at the foundation owner's
+request to match the team's actual schedule -- teammates finish at
+different times, and blocking a finished model on others still in
+progress serves no integrity purpose once registration alone proves
+no-retraining.
 
 This is a **process decision**: no contract file changed, and
 `CONTRACT_VERSION` stays `1.0.0`.
@@ -237,16 +243,28 @@ This is a **process decision**: no contract file changed, and
   `best_pt_sha256`, `frozen_at_commit`, best_epoch, best val macro-F1 --
   deliberately NO test information) once every final seed's run is
   frozen, conformant, clean, and has a passing rehearsal.
-- `cli/unblinding_status.py` reports READY only when every model in
-  `configs/study.yaml` has a registration covering every `final_seed`
-  with a `contract_dir_sha256` matching the current contract; exit code 0
-  iff READY.
 - `cli/final_test.py` (real mode only -- `--rehearsal` is completely
   unaffected) refuses to run unless the model being tested has a frozen
   registration whose recorded sha256 for this seed matches the exact
-  checkpoint in use, AND `unblinding_status` is READY.
+  checkpoint in use. There is no cross-model readiness gate: a model may
+  be tested as soon as it is registered, regardless of any other model's
+  status.
 - `cli/export_results.py` independently re-checks the same registration
-  before copying anything, refusing on a sha mismatch.
+  before copying anything, refusing on a sha mismatch. It has never
+  required a clean working tree on its own.
+- `phase2/artifacts/test_access_log.csv` is exempt from the dirty-tree
+  check used by `final_test`/`train` when its only changes since HEAD are
+  well-formed appended rows (an exact byte prefix of HEAD plus rows with
+  the header's column count) -- so running `final_test` once per final
+  seed needs no commit between calls; see `config.git_dirty_paths`. No
+  other file gets this exemption, and any non-append change to the log
+  (an edit, a deletion, a reordering, a malformed row) is still dirty.
+- `cli/unblinding_status.py` (CLI name kept for compatibility) now gates
+  only the full five-model comparison (`cli/compare.py --mode test`),
+  which legitimately needs every study model present: it reports READY
+  only when every model in `configs/study.yaml` has a registration
+  covering every `final_seed` with a `contract_dir_sha256` matching the
+  current contract.
 - `cli/efficiency_central.py` performs the central, single-machine
   measurement for every study model that is registered in the catalog,
   writing TRACKED `artifacts/comparison/efficiency_<device>.json`.
@@ -314,3 +332,17 @@ Any change to a decision in this document requires:
   timing in `evaluation/efficiency.py`/`cli/efficiency_central.py`.
   Foundation lock bumped to 1.2.0. Process/tooling only -- `configs/
   contract/` unchanged, `CONTRACT_VERSION` stays 1.0.0.
+- 2026-10-12 — D18 retitled "Registration before final test" and revised
+  at the foundation owner's request (team schedule): the simultaneous
+  five-model unblinding gate is removed from `cli/final_test.py`; a model
+  may be tested as soon as its own registration is committed, independent
+  of every other model. The registration gate itself (frozen checkpoint
+  sha must match what was registered) is retained -- test results still
+  cannot affect selection, since the training protocol is fixed before
+  training begins and the committed registration hash proves no run was
+  retrained after its test. `phase2/artifacts/test_access_log.csv` is now
+  exempt from the dirty-tree check when its only changes are well-formed
+  appended rows, so `final_test` for each final seed needs no commit in
+  between. `cli/unblinding_status.py` (name kept for compatibility) now
+  gates only `cli/compare.py --mode test`. Process/tooling change only --
+  `configs/contract/` unchanged, `CONTRACT_VERSION` stays 1.0.0.
