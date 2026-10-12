@@ -1,0 +1,6 @@
+name: vgg16
+version: "1.0.0"
+weights_id: VGG16_Weights.IMAGENET1K_V1
+reference_only: false
+description: >-
+  VGG16, torchvision ImageNet-pretrained, full fine-tuning, 3-class head.
