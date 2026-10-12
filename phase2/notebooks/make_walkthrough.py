@@ -436,18 +436,53 @@ one and only sanctioned way to touch the real test split
 is also `True`, requires this model's frozen registration to already be
 committed, and appends one row to the tracked `test_access_log.csv` per
 seed. Every final-seed run is processed in turn; a seed that is already
-logged is shown from the recorded result rather than re-run.
+logged is shown from the recorded result rather than re-run. The actual
+gated call lives in `btdl.walkthrough.run_official_final_test` -- the one
+place that module is allowed to touch the real test split.
+"""
+        )
+    )
+    cells.append(_code("final_seeds = sorted(config.load_contract(\"training\")[\"final_seeds\"])"))
+
+    cells.append(
+        _md(
+            """
+### 9a. Pre-test readiness check
+
+Runs `final_test --check-only` for every final seed: every real-mode
+gate, in order, with nothing written and no dataset constructed. This
+runs the same way regardless of `TEST_MODE` -- in rehearsal mode it is
+simply the demo-day preflight for when you DO flip to final mode.
 """
         )
     )
     cells.append(
         _code(
             """
-from btdl.cli.final_test import FinalTestError, run_final_test
+from btdl.cli.final_test import check_final_test_readiness
 
-final_seeds = sorted(config.load_contract("training")["final_seeds"])
+readiness_all_pass = True
+for seed in final_seeds:
+    run_dir = run_dir_for(MODEL, selected_lr, seed, smoke=False)
+    print(f"--- seed {seed} ({run_dir}) ---")
+    gate_results = check_final_test_readiness(run_dir, repo_root=config.repo_root())
+    for gate in gate_results:
+        print(f"  [{'PASS' if gate['ok'] else 'FAIL'}] {gate['name']}: {gate['detail']}")
+    seed_pass = all(gate["ok"] for gate in gate_results)
+    readiness_all_pass = readiness_all_pass and seed_pass
+    print("  ALL GATES PASSED" if seed_pass else "  SOME GATES FAILED")
+    print()
+print("READY FOR FINAL TEST" if readiness_all_pass else "NOT YET READY FOR FINAL TEST (see FAILs above)")
+"""
+        )
+    )
 
+    cells.append(
+        _code(
+            """
 if TEST_MODE == "rehearsal":
+    from btdl.cli.final_test import run_final_test
+
     for seed in final_seeds:
         run_dir = run_dir_for(MODEL, selected_lr, seed, smoke=False)
         rehearsal_dir = run_dir / "eval" / "rehearsal_val"
@@ -461,42 +496,16 @@ if TEST_MODE == "rehearsal":
     print("REHEARSAL (VALIDATION DATA) -- not the official test result")
 
 elif TEST_MODE == "final":
-    if not CONFIRM_FINAL_TEST:
-        raise RuntimeError(
-            "TEST_MODE='final' requires CONFIRM_FINAL_TEST=True as well -- "
-            "both settings must be set deliberately before this cell may touch the real test split"
+    result = walkthrough.run_official_final_test(MODEL, confirm=CONFIRM_FINAL_TEST, device=device)
+    for seed, status in result["per_seed"].items():
+        print(
+            f"seed {seed}: {status['status']} -- {status['detail']} "
+            f"(export: {status.get('export_status', 'n/a')})"
         )
-    import csv
-
-    log_path = config.repo_root() / "phase2" / "artifacts" / "test_access_log.csv"
-    for seed in final_seeds:
-        run_dir = run_dir_for(MODEL, selected_lr, seed, smoke=False)
-        run_dir_rel = str(run_dir.resolve().relative_to(config.repo_root()))
-        already_logged = False
-        if log_path.is_file():
-            with log_path.open(newline="") as handle:
-                already_logged = any(row.get("run_dir") == run_dir_rel for row in csv.DictReader(handle))
-        if already_logged:
-            print(f"seed {seed}: already in test_access_log.csv -- showing the recorded result")
-            continue
-        print(f"seed {seed}: running `python -m btdl.cli.final_test --run-dir {run_dir} --confirm-final-test` ...")
-        metrics = run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=False)
-        print(f"seed {seed}: TEST macro_f1={metrics['macro_f1']:.4f}")
-
-    from btdl.cli.export_results import ExportResultsError, run_export_results
-
-    for seed in final_seeds:
-        run_dir = run_dir_for(MODEL, selected_lr, seed, smoke=False)
-        try:
-            dest = run_export_results(run_dir)
-            print(f"seed {seed}: exported to {dest}")
-        except ExportResultsError as exc:
-            print(f"seed {seed}: export skipped ({exc})")
-
     print()
-    print("Afterwards, commit the log and the exported results:")
-    print("  git add phase2/artifacts/test_access_log.csv phase2/artifacts/results/" + MODEL)
-    print('  git commit -m "results(' + MODEL + '): official final test"')
+    print("Afterwards, run:")
+    for command in result["git_commands"]:
+        print(" ", command)
 else:
     raise ValueError(f"TEST_MODE must be 'rehearsal' or 'final', got {TEST_MODE!r}")
 """

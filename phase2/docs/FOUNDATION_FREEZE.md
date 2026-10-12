@@ -602,3 +602,31 @@ existing (unchanged) gate logic.
 Foundation lock regenerated, `lock_version` bumped **1.3.0 → 1.4.0**
 (`cli/final_test.py` is in the locked `cli/` subtree). `contract_dir_sha256`
 unchanged.
+
+Also on this branch (not foundation-locked, but part of the same demo-path
+hardening): `btdl.walkthrough.baseline_comparison()` now computes its
+model-vs-Phase-1-baseline comparison directly from this model's own
+exported test seeds (`phase2/artifacts/results/<model>/`) and the
+baseline's test predictions -- no more dependency on the cross-model
+`phase2/artifacts/comparison/comparison.json` (which requires every study
+model, including the unimplemented `alexnet`/`googlenet`, to be
+registered+tested). `btdl.walkthrough.run_official_final_test(model, *,
+confirm)` is the one place that module may call `final_test`'s real
+mode, gated behind `confirm=True`; it skips any seed already in the
+access log, runs `check_final_test_readiness` before each new seed, then
+exports. Verified for real on all 6 of `efficientnet_b0`'s and
+`resnet18`'s final runs: `--check-only` reports ALL GATES PASSED for
+every seed, and `FROZEN.json`/`best.pt` are byte-identical before and
+after (nothing written). Both walkthrough notebooks were regenerated
+(new section 9a: pre-test readiness check) and re-executed headless in
+rehearsal mode without error.
+
+### Test counts (as of this revision)
+
+- Phase 2 full suite (including slow + network): **604 passed**, 1134.89s
+- Phase 1 suite: **234 passed**, 18.03s
+
+All green on a clean tree immediately before this work's final commit.
+The real `test_access_log.csv` remained header-only throughout (real
+`final_test` only ever ran in `--check-only` mode in this work, which
+writes nothing).
