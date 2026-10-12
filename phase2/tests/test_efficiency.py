@@ -78,3 +78,28 @@ def test_measure_inference_defaults_come_from_contract():
     model = _toy_cnn()
     result = measure_inference(model, DEVICE)  # no explicit batch_sizes/warmup/iters
     assert set(result.keys()) == set(evaluation_cfg["efficiency"]["batch_sizes"])
+
+
+def test_measure_inference_records_memory_format_and_determinism():
+    model = _toy_cnn()
+    result = measure_inference(model, DEVICE, batch_sizes=(1,), warmup=1, iters=3)
+    assert result[1]["memory_format"] == "contiguous"
+    assert result[1]["deterministic_algorithms"] is True
+
+
+def test_measure_inference_enables_deterministic_algorithms_globally():
+    import torch
+
+    torch.use_deterministic_algorithms(False)
+    model = _toy_cnn()
+    measure_inference(model, DEVICE, batch_sizes=(1,), warmup=1, iters=3)
+    assert torch.are_deterministic_algorithms_enabled() is True
+    torch.use_deterministic_algorithms(False)  # restore for other tests in this session
+
+
+def test_measure_inference_uses_inference_mode_not_grad_tracking():
+    model = _toy_cnn()
+    x = torch.rand(1, 3, 224, 224, requires_grad=True)
+    with torch.inference_mode():
+        out = model(x)
+    assert not out.requires_grad  # inference_mode tensors never require grad

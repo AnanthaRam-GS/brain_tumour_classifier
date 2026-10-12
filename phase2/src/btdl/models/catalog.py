@@ -11,6 +11,7 @@ machinery.
 
 from btdl.models.efficientnet_b0 import build_efficientnet_b0
 from btdl.models.model_spec import ModelSpec
+from btdl.models.resnet18 import build_resnet18
 from btdl.models.tiny_cnn import build_tiny_cnn
 from btdl.models.vgg16 import build_vgg16
 
@@ -40,5 +41,15 @@ MODEL_REGISTRY: dict = {
         reference_only=False,
         description="torchvision EfficientNet-B0, ImageNet-pretrained, full fine-tuning, "
         "3-class head (D8).",
+    ),
+    "resnet18": ModelSpec(
+        name="resnet18",
+        version="1.0.0",
+        builder=build_resnet18,
+        weights_id="ResNet18_Weights.IMAGENET1K_V1",
+        reference_only=False,
+        description="torchvision ResNet18, ImageNet-pretrained, full fine-tuning, 3-class "
+        "head (D8). Assigned to Sanjay Anand M; implemented by the foundation owner on "
+        "their behalf.",
     ),
 }

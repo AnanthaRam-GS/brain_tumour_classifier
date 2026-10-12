@@ -87,3 +87,31 @@ def test_no_study_models_present_means_empty_results(fake_repo):
     assert payload["present_models"] == []
     assert sorted(payload["missing_models"]) == ["not_a_real_model_a", "not_a_real_model_b"]
     assert payload["results"] == {}
+
+
+@pytest.mark.slow
+def test_explicit_num_threads_recorded_as_explicit_policy(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _write_study(tmp_path, ["tiny_cnn"])
+    payload = run_efficiency_central(DEVICE, num_threads=2)
+    assert payload["machine"]["thread_policy"] == "explicit"
+    assert payload["machine"]["num_threads"] == 2
+
+
+@pytest.mark.slow
+def test_default_thread_policy_is_performance_or_physical_cores(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _write_study(tmp_path, ["tiny_cnn"])
+    payload = run_efficiency_central(DEVICE)  # no explicit num_threads
+    assert payload["machine"]["thread_policy"] in ("performance_cores", "physical_cores")
+    assert payload["machine"]["num_threads"] > 0
+
+
+@pytest.mark.slow
+def test_inference_results_record_determinism_and_memory_format(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    _write_study(tmp_path, ["tiny_cnn"])
+    payload = run_efficiency_central(DEVICE, num_threads=1)
+    for stats in payload["results"]["tiny_cnn"]["inference"].values():
+        assert stats["deterministic_algorithms"] is True
+        assert stats["memory_format"] == "contiguous"
