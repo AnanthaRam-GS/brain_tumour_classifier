@@ -9,8 +9,17 @@ never calls RoiDataset at all (it reads the ROI cache and predictions.csv
 directly); tests/test_walkthrough.py's AST guard statically forbids this
 module from ever calling RoiDataset with split="test" or allow_test=True,
 should one ever be added here.
+
+The one exception is `run_official_final_test()`: the single, explicitly
+gated place in this module allowed to call `btdl.cli.final_test`'s real
+(non-rehearsal) `run_final_test` -- it refuses immediately unless called
+with `confirm=True`. tests/test_walkthrough.py's AST guard also statically
+forbids any call to `run_final_test` anywhere in this module OUTSIDE
+`run_official_final_test`, and asserts that function's confirm check is
+its first statement.
 """
 
+import csv
 import json
 from pathlib import Path
 
@@ -20,7 +29,10 @@ import pandas as pd
 from btdl import config
 from btdl.cli.register_frozen import FROZEN_REGISTRATION_DIR_RELPATH
 from btdl.cli.unblinding_status import compute_status
+from btdl.comparison.baseline import load_baseline_test_predictions
+from btdl.comparison.loaders import ComparisonInputError, load_test_model
 from btdl.comparison.stats import (
+    paired_multi_seed_patient_bootstrap,
     seed_aggregate_calibration,
     seed_aggregate_headline,
     seed_aggregate_per_class,
@@ -29,11 +41,14 @@ from btdl.comparison.stats import (
 from btdl.contracts import CLASS_NAMES_BY_INDEX, label_to_index
 from btdl.data.roi_cache import open_roi_cache
 from btdl.data.split import SplitIntegrityError, load_split, validate_split
+from btdl.evaluation.metrics import full_metrics
 from btdl.models.registry import build_model, get_spec
 from btdl.preprocessing.model_input import to_model_input
 from btdl.preprocessing.resize import resize_roi
 from btdl.preprocessing.roi import compute_roi
 from btdl.runs import run_dir_for
+
+BASELINE_COMPARISON_METRICS = ("macro_f1", "balanced_accuracy", "meningioma_f1", "macro_ovr_auc")
 
 QA_DIR_RELPATH = "phase2/artifacts/qa"
 RESULTS_DIR_RELPATH = "phase2/artifacts/results"
@@ -346,28 +361,74 @@ def split_results(model: str, split: str) -> dict:
 
 
 def baseline_comparison(model: str) -> dict:
-    """Test-mode-only comparison against Phase 1's GLCM v2 baseline, read
-    from a previously written phase2/artifacts/comparison/comparison.json
-    (never recomputes the comparison itself)."""
+    """Test-mode-only comparison against Phase 1's GLCM v2 baseline,
+    computed directly from THIS model's own exported test-mode seeds
+    (phase2/artifacts/results/<model>/seed<seed>/) and the baseline's test
+    predictions -- no dependency on the cross-model
+    phase2/artifacts/comparison/comparison.json (which requires every
+    study model to be registered+tested first, via
+    cli.compare.py --mode test / unblinding_status). Reuses the same
+    comparison primitives cli/compare.py itself uses (btdl.comparison.
+    baseline/loaders/stats), just scoped to one model instead of the
+    whole study.
+
+    Returns a headline table (this model's seed mean +/- std vs. the
+    baseline's point value) and paired-difference bootstrap CIs (this
+    model's seed-averaged metric minus the baseline's, on identical
+    patient resamples), for macro_f1, balanced_accuracy, meningioma_f1,
+    and macro_ovr_auc."""
 
     repo_root = config.repo_root()
-    comparison_path = repo_root / "phase2" / "artifacts" / "comparison" / "comparison.json"
-    if not comparison_path.is_file():
-        return {
-            "available": False,
-            "note": "no comparison.json yet -- run cli/compare.py --mode test after unblinding",
-        }
+    try:
+        seeds_data = load_test_model(model, repo_root=repo_root)
+    except ComparisonInputError as exc:
+        return {"available": False, "note": str(exc)}
 
-    comparison = _read_json(comparison_path)
-    model_entry = comparison.get("models", {}).get(model)
-    if model_entry is None:
-        return {"available": False, "note": f"{model!r} not present in comparison.json"}
+    seeds_metrics = [d["metrics"] for d in seeds_data]
+    probs_by_seed = {d["seed"]: d["probs"] for d in seeds_data}
+    model_headline = seed_aggregate_headline(seeds_metrics)
+    model_per_class = seed_aggregate_per_class(seeds_metrics)
+
+    expected_sample_ids = set(seeds_data[0]["sample_ids"])
+    baseline_raw = load_baseline_test_predictions(expected_sample_ids, repo_root=repo_root)
+    baseline_metrics = full_metrics(baseline_raw["y_true_idx"], baseline_raw["probs"])
+    baseline_headline = seed_aggregate_headline([baseline_metrics])
+    baseline_per_class = seed_aggregate_per_class([baseline_metrics])
+
+    evaluation_cfg = config.load_contract("evaluation")
+    paired = paired_multi_seed_patient_bootstrap(
+        seeds_data[0]["y_true_idx"],
+        probs_by_seed,
+        {"baseline": baseline_raw["probs"]},
+        seeds_data[0]["patient_ids"],
+        n_resamples=evaluation_cfg["bootstrap"]["n_resamples"],
+        seed=evaluation_cfg["bootstrap"]["seed"],
+        alpha=evaluation_cfg["bootstrap"]["alpha"],
+    )
+
+    def _stats_for(name, headline, per_class):
+        if name == "meningioma_f1":
+            return per_class["meningioma"]["f1"]
+        if name == "macro_ovr_auc":
+            return headline["macro_auc"]
+        return headline[name]
+
+    headline_table = {}
+    for name in BASELINE_COMPARISON_METRICS:
+        model_stats = _stats_for(name, model_headline, model_per_class)
+        baseline_stats = _stats_for(name, baseline_headline, baseline_per_class)
+        headline_table[name] = {
+            "model_mean": model_stats["mean"],
+            "model_std": model_stats["std"],
+            "baseline": baseline_stats["mean"],
+        }
 
     return {
         "available": True,
-        "model": model_entry,
-        "baseline": comparison.get("baseline"),
-        "paired_vs_baseline": comparison.get("paired_vs_baseline", {}).get(model),
+        "model": model,
+        "baseline_name": baseline_raw["name"],
+        "headline": headline_table,
+        "paired_vs_baseline": {name: paired[name] for name in BASELINE_COMPARISON_METRICS},
     }
 
 
@@ -456,3 +517,86 @@ def test_access_status(model: str) -> dict:
     model_row = next((row for row in overall_status["models"] if row["model_name"] == model), None)
 
     return {"per_seed": per_seed, "study_wide_ready": overall_status["ready"], "model_status_row": model_row}
+
+
+# ---- gated official final-test helper (the ONE place this module may touch the real test split) --
+
+
+def run_official_final_test(model: str, *, confirm: bool, device=None) -> dict:
+    """The ONLY sanctioned place in this module allowed to run a REAL
+    (non-rehearsal) final_test -- refuses immediately unless confirm=True
+    (docs/DECISIONS.md D18). For each of training.yaml's final_seeds: if
+    that run is already in the test-access log, records it as already
+    tested (skipped, no re-run -- final_test itself refuses a repeat
+    anyway); otherwise runs `check_final_test_readiness` first and, only
+    if every gate passes, the real final_test. Afterwards exports every
+    seed that has a real test result but isn't exported yet. Returns
+    {"per_seed": {seed: {...}}, "git_commands": [...]} -- it never commits
+    anything itself, only tells the caller what to run."""
+
+    if not confirm:
+        raise WalkthroughError(
+            "run_official_final_test refuses to run unless confirm=True -- this is the only "
+            "sanctioned way this module may touch the real test split (docs/DECISIONS.md D18)"
+        )
+
+    from btdl.cli.export_results import ExportResultsError, run_export_results
+    from btdl.cli.final_test import check_final_test_readiness, run_final_test
+    from btdl.training.device import select_device
+
+    repo_root = config.repo_root()
+    device = device or select_device("auto")
+    selected_lr = _selection(model, repo_root)["selected_lr"]
+    final_seeds = _final_seeds()
+    log_path = repo_root / TEST_ACCESS_LOG_RELPATH
+
+    def _logged_row(run_dir_rel):
+        if not log_path.is_file():
+            return None
+        with log_path.open(newline="") as handle:
+            return next((row for row in csv.DictReader(handle) if row.get("run_dir") == run_dir_rel), None)
+
+    per_seed = {}
+    for seed in final_seeds:
+        run_dir = run_dir_for(model, selected_lr, seed, smoke=False)
+        run_dir_rel = str(run_dir.resolve().relative_to(repo_root))
+        logged_row = _logged_row(run_dir_rel)
+
+        if logged_row is not None:
+            per_seed[seed] = {
+                "status": "already tested",
+                "detail": f"already tested at {logged_row.get('utc_timestamp')}",
+            }
+            continue
+
+        readiness = check_final_test_readiness(run_dir, repo_root=repo_root)
+        if not all(gate["ok"] for gate in readiness):
+            failing = [gate["name"] for gate in readiness if not gate["ok"]]
+            per_seed[seed] = {
+                "status": "not ready",
+                "detail": f"failing readiness gate(s): {failing}",
+                "readiness": readiness,
+            }
+            continue
+
+        metrics = run_final_test(run_dir, confirm_final_test=True, device=device, rehearsal=False)
+        per_seed[seed] = {"status": "tested", "detail": f"macro_f1={metrics['macro_f1']:.4f}"}
+
+    for seed in final_seeds:
+        run_dir = run_dir_for(model, selected_lr, seed, smoke=False)
+        dest_dir = repo_root / RESULTS_DIR_RELPATH / model / f"seed{seed}"
+        if dest_dir.is_dir():
+            per_seed[seed]["export_status"] = "already exported"
+            continue
+        try:
+            run_export_results(run_dir)
+            per_seed[seed]["export_status"] = "exported"
+        except ExportResultsError as exc:
+            per_seed[seed]["export_status"] = f"skipped: {exc}"
+
+    git_commands = [
+        f"git add {TEST_ACCESS_LOG_RELPATH} {RESULTS_DIR_RELPATH}/{model}/",
+        f'git commit -m "results({model}): official final test"',
+    ]
+
+    return {"per_seed": per_seed, "git_commands": git_commands}

@@ -576,3 +576,57 @@ All green on a clean tree immediately before this work's final commit.
 The real `test_access_log.csv` remained header-only throughout (all new
 test coverage uses synthetic fixtures; `final_test` was never run on the
 real test split in this work).
+
+## 12. `final_test --check-only` readiness gate (branch `phase2/walkthrough-notebooks`)
+
+Added `check_final_test_readiness()` / `--check-only` to
+`cli/final_test.py`: runs every real-mode gate in the same order as a
+real run, but (a) never stops at the first failing gate -- every gate is
+evaluated and reported, so a presenter can see the full picture rather
+than one error at a time -- and (b) never constructs a dataset, loads a
+model, or writes anything (no log row, no `eval/test/`, no file of any
+kind; verified by diffing the run dir and the log byte-for-byte before
+and after). `--check-only` is mutually exclusive with
+`--confirm-final-test` and incompatible with `--rehearsal`.
+
+This was motivated by the walkthrough notebooks (`phase2/notebooks/`):
+section 9a now runs `--check-only` for every final seed as a demo-day
+preflight, in both rehearsal and final mode, so a presenter can confirm
+readiness without risking an accidental real test-split access.
+
+`TEAM_GUIDE.md` §6 (step 7) now recommends running `--check-only` before
+each real `final_test` call. No gate's behavior changed -- this is purely
+an additive, side-effect-free readiness check layered on top of the
+existing (unchanged) gate logic.
+
+Foundation lock regenerated, `lock_version` bumped **1.3.0 → 1.4.0**
+(`cli/final_test.py` is in the locked `cli/` subtree). `contract_dir_sha256`
+unchanged.
+
+Also on this branch (not foundation-locked, but part of the same demo-path
+hardening): `btdl.walkthrough.baseline_comparison()` now computes its
+model-vs-Phase-1-baseline comparison directly from this model's own
+exported test seeds (`phase2/artifacts/results/<model>/`) and the
+baseline's test predictions -- no more dependency on the cross-model
+`phase2/artifacts/comparison/comparison.json` (which requires every study
+model, including the unimplemented `alexnet`/`googlenet`, to be
+registered+tested). `btdl.walkthrough.run_official_final_test(model, *,
+confirm)` is the one place that module may call `final_test`'s real
+mode, gated behind `confirm=True`; it skips any seed already in the
+access log, runs `check_final_test_readiness` before each new seed, then
+exports. Verified for real on all 6 of `efficientnet_b0`'s and
+`resnet18`'s final runs: `--check-only` reports ALL GATES PASSED for
+every seed, and `FROZEN.json`/`best.pt` are byte-identical before and
+after (nothing written). Both walkthrough notebooks were regenerated
+(new section 9a: pre-test readiness check) and re-executed headless in
+rehearsal mode without error.
+
+### Test counts (as of this revision)
+
+- Phase 2 full suite (including slow + network): **604 passed**, 1134.89s
+- Phase 1 suite: **234 passed**, 18.03s
+
+All green on a clean tree immediately before this work's final commit.
+The real `test_access_log.csv` remained header-only throughout (real
+`final_test` only ever ran in `--check-only` mode in this work, which
+writes nothing).

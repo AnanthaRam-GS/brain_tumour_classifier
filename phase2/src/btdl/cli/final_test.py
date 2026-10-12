@@ -1,4 +1,4 @@
-"""python -m btdl.cli.final_test --run-dir R --confirm-final-test [--rehearsal]
+"""python -m btdl.cli.final_test --run-dir R --confirm-final-test [--rehearsal] [--check-only]
 
 The ONLY sanctioned way Phase 2 touches the real test split. Every
 requirement below is checked BEFORE any test data is loaded:
@@ -32,6 +32,14 @@ can rehearse). It NEVER writes the access log and NEVER constructs the
 test dataset -- allow_test=True appears nowhere outside the real path
 (see test_no_allow_test_outside_final_test.py). Also checks reload
 equivalence (C8), same as cli/evaluate.py.
+
+--check-only runs every real-mode gate above, in the same order, WITHOUT
+constructing any dataset, loading the model, or writing anything (no log
+row, no eval dir, no file of any kind) -- see check_final_test_readiness().
+Unlike a real run it does not stop at the first failing gate: every gate
+is evaluated and printed as PASS/FAIL, and the process exits 0 only if
+all of them pass. Mutually exclusive with --confirm-final-test and
+incompatible with --rehearsal (rehearsal has no real-mode gates to check).
 """
 
 import argparse
@@ -148,6 +156,206 @@ def _check_base_provenance(run_dir, repo_root):
         raise FinalTestError(f"refusing: the current working tree is not clean. Offending paths: {dirty_paths}")
 
     return frozen, metadata, best_pt_sha256
+
+
+def check_final_test_readiness(run_dir, *, repo_root=None) -> list:
+    """python -m btdl.cli.final_test --run-dir R --check-only
+
+    Runs every gate a REAL (non-rehearsal) final_test would check, in the
+    same order, WITHOUT constructing any dataset, loading the model, or
+    writing anything -- no log row, no eval dir, no file of any kind.
+    Unlike run_final_test's raise-on-first-failure gates, every gate here
+    is evaluated and reported regardless of earlier failures (a gate whose
+    own prerequisite is missing, e.g. the lr-vs-selection check when the
+    selection file itself is absent, is reported FAIL with a note rather
+    than silently skipped). Returns an ordered list of
+    {"name", "ok", "detail"} dicts."""
+
+    run_dir = Path(run_dir)
+    repo_root = Path(repo_root) if repo_root is not None else config.repo_root()
+    results = []
+
+    def _check(name, ok, detail):
+        results.append({"name": name, "ok": ok, "detail": detail})
+
+    frozen_path = run_dir / "FROZEN.json"
+    frozen = None
+    if frozen_path.is_file():
+        with frozen_path.open() as handle:
+            frozen = json.load(handle)
+        _check("frozen_json_exists", True, f"{frozen_path} present")
+    else:
+        _check("frozen_json_exists", False, f"{run_dir} is not frozen (no FROZEN.json) -- run cli/freeze.py first")
+
+    best_path = run_dir / "best.pt"
+    best_pt_sha256 = None
+    if not best_path.is_file():
+        _check("best_pt_sha256_matches_frozen", False, f"best.pt not found in {run_dir}")
+    else:
+        best_pt_sha256 = _file_sha256(best_path)
+        if frozen is None:
+            _check("best_pt_sha256_matches_frozen", False, "cannot check -- FROZEN.json missing")
+        else:
+            expected = frozen.get("best_pt_sha256")
+            if best_pt_sha256 == expected:
+                _check("best_pt_sha256_matches_frozen", True, f"best.pt sha256 matches FROZEN.json ({best_pt_sha256})")
+            else:
+                _check(
+                    "best_pt_sha256_matches_frozen",
+                    False,
+                    f"best.pt sha256 does not match FROZEN.json: expected {expected}, got {best_pt_sha256}",
+                )
+
+    current_contract_hash = config.contract_dir_sha256()
+    if frozen is None:
+        _check("contract_hash_matches", False, "cannot check -- FROZEN.json missing")
+    else:
+        recorded = frozen.get("contract_dir_sha256")
+        if recorded == current_contract_hash:
+            _check("contract_hash_matches", True, f"FROZEN.json contract_dir_sha256 matches the current contract")
+        else:
+            _check(
+                "contract_hash_matches",
+                False,
+                f"FROZEN.json contract_dir_sha256 ({recorded}) does not match the current contract ({current_contract_hash})",
+            )
+
+    metadata_path = run_dir / "metadata.json"
+    metadata = None
+    if metadata_path.is_file():
+        with metadata_path.open() as handle:
+            metadata = json.load(handle)
+        _check("metadata_exists", True, f"{metadata_path} present")
+    else:
+        _check("metadata_exists", False, f"metadata.json not found in {run_dir}")
+
+    if metadata is None:
+        _check("contract_conformant", False, "cannot check -- metadata.json missing")
+    elif metadata.get("contract_conformant") is True:
+        _check("contract_conformant", True, "metadata.contract_conformant is True")
+    else:
+        _check("contract_conformant", False, "refusing: metadata.contract_conformant is not True")
+
+    dirty_paths = config.git_dirty_paths(repo_root)
+    if not dirty_paths:
+        _check("working_tree_clean", True, "the current working tree is clean")
+    else:
+        _check(
+            "working_tree_clean",
+            False,
+            f"refusing: the current working tree is not clean. Offending paths: {dirty_paths}",
+        )
+
+    model_name = metadata.get("model_name") if metadata else None
+    spec = get_spec(model_name) if model_name is not None else None
+    if spec is None:
+        _check("not_reference_only", False, "cannot check -- model_name unknown (metadata.json missing)")
+    elif not spec.reference_only:
+        _check("not_reference_only", True, f"{model_name!r} is not reference_only")
+    else:
+        _check(
+            "not_reference_only",
+            False,
+            f"refusing: model {model_name!r} is reference_only -- only a real architecture may run a real final_test",
+        )
+
+    training_cfg = config.load_contract("training")
+    final_seeds = list(training_cfg["final_seeds"])
+    seed = metadata.get("seed") if metadata else None
+    if seed in final_seeds:
+        _check("seed_in_final_seeds", True, f"seed {seed} is in final_seeds {final_seeds}")
+    else:
+        _check("seed_in_final_seeds", False, f"refusing: run seed {seed} is not in final_seeds {final_seeds}")
+
+    selection = None
+    if model_name is None:
+        _check("selection_file_exists", False, "cannot check -- model_name unknown")
+    else:
+        selection_path = repo_root / "phase2" / "artifacts" / "selection" / f"{model_name}.json"
+        if selection_path.is_file():
+            with selection_path.open() as handle:
+                selection = json.load(handle)
+            _check("selection_file_exists", True, f"{selection_path} present")
+        else:
+            _check(
+                "selection_file_exists",
+                False,
+                f"refusing: no selection file at {selection_path} -- run cli/select_lr.py first",
+            )
+
+    lr = metadata.get("lr") if metadata else None
+    if selection is None:
+        _check("lr_matches_selection", False, "cannot check -- selection file missing")
+    elif lr == selection.get("selected_lr"):
+        _check("lr_matches_selection", True, f"run lr {lr} matches the selected lr {selection['selected_lr']}")
+    else:
+        _check(
+            "lr_matches_selection",
+            False,
+            f"refusing: run lr {lr} does not match the selected lr {selection.get('selected_lr')} in {selection_path}",
+        )
+
+    run_dir_rel = _relative_run_dir(run_dir, repo_root)
+    log_path = repo_root / TEST_ACCESS_LOG_RELPATH
+    if _already_logged(log_path, run_dir_rel):
+        _check(
+            "not_already_logged",
+            False,
+            f"{run_dir_rel} already has a test-access log entry -- final_test may run only once per run",
+        )
+    else:
+        _check("not_already_logged", True, f"{run_dir_rel} has no prior test-access log entry")
+
+    registration = None
+    frozen_registration_path = None
+    if model_name is None:
+        _check("frozen_registration_exists", False, "cannot check -- model_name unknown")
+    else:
+        frozen_registration_path = repo_root / FROZEN_REGISTRATION_DIR_RELPATH / f"{model_name}.json"
+        if frozen_registration_path.is_file():
+            with frozen_registration_path.open() as handle:
+                registration = json.load(handle)
+            _check("frozen_registration_exists", True, f"{frozen_registration_path} present")
+        else:
+            _check(
+                "frozen_registration_exists",
+                False,
+                f"refusing: no frozen registration at {frozen_registration_path} -- run "
+                "`python -m btdl.cli.register_frozen` first",
+            )
+
+    registered_sha = None
+    if registration is None:
+        _check("seed_registered_in_frozen", False, "cannot check -- frozen registration missing")
+    else:
+        registered_sha = next(
+            (entry.get("best_pt_sha256") for entry in registration.get("seeds", []) if entry.get("seed") == seed),
+            None,
+        )
+        if registered_sha is not None:
+            _check("seed_registered_in_frozen", True, f"seed {seed} is registered in {frozen_registration_path}")
+        else:
+            _check(
+                "seed_registered_in_frozen",
+                False,
+                f"refusing: seed {seed} is not registered in {frozen_registration_path}",
+            )
+
+    if registered_sha is None or best_pt_sha256 is None:
+        _check("checkpoint_matches_registration", False, "cannot check -- missing checkpoint sha256 or registration")
+    elif best_pt_sha256 == registered_sha:
+        _check(
+            "checkpoint_matches_registration", True, f"best.pt sha256 matches the frozen registration ({best_pt_sha256})"
+        )
+    else:
+        _check(
+            "checkpoint_matches_registration",
+            False,
+            f"refusing: this run's best.pt sha256 ({best_pt_sha256}) does not match the frozen "
+            f"registration for seed {seed} ({registered_sha}) -- the checkpoint changed since registration",
+        )
+
+    return results
 
 
 def _check_real_mode_gates(run_dir, metadata, repo_root):
@@ -319,10 +527,24 @@ def main():
     parser.add_argument("--run-dir", required=True, type=Path)
     parser.add_argument("--confirm-final-test", action="store_true")
     parser.add_argument("--rehearsal", action="store_true")
+    parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
+
+    if args.check_only:
+        if args.confirm_final_test:
+            parser.error("--check-only and --confirm-final-test are mutually exclusive")
+        if args.rehearsal:
+            parser.error("--check-only is incompatible with --rehearsal")
+        results = check_final_test_readiness(args.run_dir)
+        for result in results:
+            print(f"[{'PASS' if result['ok'] else 'FAIL'}] {result['name']}: {result['detail']}")
+        all_pass = all(result["ok"] for result in results)
+        print()
+        print("ALL GATES PASSED" if all_pass else "SOME GATES FAILED")
+        raise SystemExit(0 if all_pass else 1)
 
     device = select_device(args.device)
     metrics = run_final_test(
