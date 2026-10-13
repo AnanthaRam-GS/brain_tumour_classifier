@@ -630,3 +630,31 @@ All green on a clean tree immediately before this work's final commit.
 The real `test_access_log.csv` remained header-only throughout (real
 `final_test` only ever ran in `--check-only` mode in this work, which
 writes nothing).
+
+## 13. Smoke-run epoch count: 2 → 6 (branch `main`, direct)
+
+`SMOKE_MAX_EPOCHS` (`src/btdl/cli/train.py`) raised from 2 to 6, so a
+`--smoke` run (including the walkthrough notebooks' section 6 live
+training cell) trains a few more epochs and produces more legible
+`history.csv` curves. Still a recorded contract deviation (non-conformant
+by design) -- this is a quantity change, not a change to what `--smoke`
+*means*. `tests/test_train_cli.py`'s assertion on the resulting
+`effective_cfg["max_epochs"]` now reads `SMOKE_MAX_EPOCHS` instead of a
+hardcoded `2`. `docs/TEAM_GUIDE.md`'s step-1 smoke-run instruction updated
+to reference the constant rather than a hardcoded epoch count (the D1
+determinism-probe entry in this file, §1, describes a specific past
+experiment that genuinely ran at 2 epochs and is left as a historical
+record).
+
+The walkthrough notebooks' section 6 was also reworded (`notebooks/
+make_walkthrough.py`): it's titled "Live training" (not "...
+demonstration"), and no longer prints/labels its output as
+"demonstration only -- not the official result" -- it is a normal working
+section like every other, not a disclaimed placeholder. (Section 9's
+"REHEARSAL (VALIDATION DATA) -- not the official test result" label is
+unrelated and unchanged -- that one is safety-critical, distinguishing a
+rehearsal run from a real test result, not "demo" framing.)
+
+Foundation lock regenerated, `lock_version` bumped **1.4.0 → 1.5.0**
+(`cli/train.py` is in the locked `cli/` subtree). `contract_dir_sha256`
+unchanged.

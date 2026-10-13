@@ -205,8 +205,9 @@ cd phase2
 .venv/bin/python -m btdl.cli.check_setup
 .venv/bin/python -m pytest -q tests/test_model_contract.py
 
-# 1. Smoke run (2 epochs, non-conformant by design) -- confirms the whole
-#    pipeline runs end to end for your model before a real run.
+# 1. Smoke run (SMOKE_MAX_EPOCHS epochs, non-conformant by design) --
+#    confirms the whole pipeline runs end to end for your model before a
+#    real run.
 .venv/bin/python -m btdl.cli.train --model <your_model> --lr 1e-3 --seed 42 --smoke
 
 # 2. Grid search: one run per lr in training.yaml's lr_grid, at grid_seed.

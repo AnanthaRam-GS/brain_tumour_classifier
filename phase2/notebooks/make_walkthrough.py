@@ -219,15 +219,15 @@ print(model_info["module_tree"])
         )
     )
 
-    # ---- 6. Live training demonstration --------------------------------------------------------
+    # ---- 6. Live training --------------------------------------------------------------------
     cells.append(
         _md(
             """
-## 6. Live training demonstration
+## 6. Live training
 
-A 2-epoch `--smoke` run at the study's selected learning rate, seed 42.
-**This is a demonstration only -- not the official result** (a real final
-run trains for up to `training.yaml`'s `max_epochs`, with early stopping).
+A short `--smoke` run at the study's selected learning rate, seed 42 (a
+quick training run at a reduced epoch count, so a real final run still
+trains for up to `training.yaml`'s `max_epochs`, with early stopping).
 Any previous smoke run for this model is moved aside first (never
 deleted), under the gitignored `phase2/runs/_smoke/_previous/` tree.
 """
@@ -241,7 +241,7 @@ import shutil
 from datetime import datetime, timezone
 
 from btdl import config
-from btdl.cli.train import run_train
+from btdl.cli.train import SMOKE_MAX_EPOCHS, run_train
 from btdl.runs import run_dir_for
 from btdl.training.device import select_device
 
@@ -259,7 +259,7 @@ if smoke_dir.exists():
     print(f"moved existing smoke run to {dest}")
 
 device = select_device("auto")
-print("DEMONSTRATION ONLY -- not the official result")
+print(f"running a {SMOKE_MAX_EPOCHS}-epoch training run at lr={selected_lr}, seed=42")
 result = run_train(MODEL, selected_lr, 42, smoke=True, device=device)
 print(f"ran {result.epochs_run} epoch(s), stop reason: {result.stop_reason!r}")
 

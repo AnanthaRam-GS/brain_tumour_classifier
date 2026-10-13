@@ -15,8 +15,9 @@ Protocol rules (refused with a clear message):
   - a dirty working tree is refused unless --allow-dirty (the run is then
     recorded as git_dirty, via the existing metadata mechanism, and cannot
     later be frozen)
---smoke overrides max_epochs to 2 (a recorded contract deviation, so the
-run is non-conformant) and places the run under phase2/runs/_smoke/.
+--smoke overrides max_epochs to SMOKE_MAX_EPOCHS (a recorded contract
+deviation, so the run is non-conformant) and places the run under
+phase2/runs/_smoke/.
 """
 
 import argparse
@@ -34,7 +35,7 @@ from btdl.training.checkpointing import normalize_cfg
 from btdl.training.device import select_device
 from btdl.training.trainer import fit
 
-SMOKE_MAX_EPOCHS = 2
+SMOKE_MAX_EPOCHS = 6
 
 
 class TrainCliError(ValueError):

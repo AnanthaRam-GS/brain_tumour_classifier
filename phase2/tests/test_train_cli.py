@@ -4,7 +4,7 @@ import subprocess
 import pytest
 
 from btdl import config
-from btdl.cli.train import TrainCliError, run_train
+from btdl.cli.train import SMOKE_MAX_EPOCHS, TrainCliError, run_train
 from btdl.training.device import select_device
 
 DEVICE = select_device("cpu")
@@ -122,7 +122,7 @@ def test_smoke_overrides_max_epochs_and_is_non_conformant(git_fake_repo):
     assert metadata["contract_conformant"] is False
     deviation_keys = {d["key"] for d in metadata["contract_deviations"]}
     assert "max_epochs" in deviation_keys
-    assert metadata["effective_cfg"]["max_epochs"] == 2
+    assert metadata["effective_cfg"]["max_epochs"] == SMOKE_MAX_EPOCHS
 
 
 @pytest.mark.slow

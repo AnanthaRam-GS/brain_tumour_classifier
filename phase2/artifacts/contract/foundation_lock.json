@@ -19,12 +19,12 @@
     "phase2/src/btdl/cli/export_results.py": "b988dddb4d24e8662b7ac73a4a9afe0f8a5702d16a25578eb6e70c1a03d44684",
     "phase2/src/btdl/cli/final_test.py": "c12d06810e9c933352b3a64a7d47e6a972a800dd9c3909de17af42ea59116813",
     "phase2/src/btdl/cli/freeze.py": "959e61ff552ae77e660339cf4a3283d42ef45aaed167740e6074855ea630526e",
-    "phase2/src/btdl/cli/lock.py": "9e92373b596331bad081242a4763f204d4a3e2ec7efffede3821a3ba0fc0c601",
+    "phase2/src/btdl/cli/lock.py": "9f40cf7f7b215ec60938468da6a807077bb22361dd991691b146819359c7ce3e",
     "phase2/src/btdl/cli/register_frozen.py": "02c17cadeba3d4644d4f0f803b9cba8880d39a2c6b0abd803541e03d9f01364f",
     "phase2/src/btdl/cli/roi_qa.py": "ca327fd6470f7afff5b8c8ddd28a59873a65bfe17b595798c72323b4955e6ace",
     "phase2/src/btdl/cli/select_lr.py": "fb4020dde8f11b6a2805ba54db096b36b7b2f00c0b8db96500b83d0a1a595e5a",
     "phase2/src/btdl/cli/size_tertiles.py": "25ef0c6c6fc594d9cb5ac53a0125dfd147a0d1bee9f1c61caa06d5c69dcea7f6",
-    "phase2/src/btdl/cli/train.py": "2260ee1c163dbbc31093b67a7286c655cd95347720a4bbee019b19488b9a54f3",
+    "phase2/src/btdl/cli/train.py": "0eb0dbf3375ad683d4be3750486e9834e491602226441dbcfb9b0815b9635c17",
     "phase2/src/btdl/cli/unblinding_status.py": "f582d2a7c208edd52155311e93a06642da8e77edfeebb476191580e3453735b2",
     "phase2/src/btdl/comparison/__init__.py": "ba0b57ff2828f00e61beec8d454372a8ea8caf93c07fb1a9573fd81a84766345",
     "phase2/src/btdl/comparison/baseline.py": "2a2d15f43ffe6b760ac444b69b84fcba958eab09c3bb6eb41bfa0b96efc16dd5",
@@ -69,5 +69,5 @@
     "phase2/src/btdl/training/seed.py": "7b017a85a5a3b9ba0a125a4a4ab01cdd33c34f6c0ff6145a5869d1f0d151cb37",
     "phase2/src/btdl/training/trainer.py": "2b62c3dd93b39afc64a0c63ed95996ccaadf50a0ad0dcd68c21ddf15396effad"
   },
-  "lock_version": "1.4.0"
+  "lock_version": "1.5.0"
 }
