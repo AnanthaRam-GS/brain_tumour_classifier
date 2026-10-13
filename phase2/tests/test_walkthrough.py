@@ -232,15 +232,33 @@ def test_test_access_status_unregistered_model(fake_repo):
         assert seed_status["logged"] is False
 
 
-# ---- baseline_comparison (single-model, no comparison.json dependency; see
-# tests/test_walkthrough_final_path.py for the full available-data case) ----------------------
+# ---- phase1_comparison_doc ---------------------------------------------------------------------
 
 
-def test_baseline_comparison_not_available_when_not_exported(fake_repo):
-    # No export_results has ever run for this model -- load_test_model()
-    # raises ComparisonInputError, which baseline_comparison must turn into
-    # a graceful "not available" dict rather than propagating.
-    result = walkthrough.baseline_comparison("tiny_cnn")
+def test_phase1_comparison_doc_not_available_when_missing(fake_repo):
+    result = walkthrough.phase1_comparison_doc("tiny_cnn")
+    assert result["available"] is False
+
+
+def test_phase1_comparison_doc_reads_matching_file(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    docs_dir = tmp_path / "phase2" / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (docs_dir / "wavelet_rf_vs_tiny_cnn.md").write_text("# comparison\n\nsome numbers\n")
+
+    result = walkthrough.phase1_comparison_doc("tiny_cnn")
+    assert result["available"] is True
+    assert result["content"] == "# comparison\n\nsome numbers\n"
+    assert result["path"].name == "wavelet_rf_vs_tiny_cnn.md"
+
+
+def test_phase1_comparison_doc_does_not_match_a_different_model(fake_repo):
+    tmp_path, manifest, specs = fake_repo
+    docs_dir = tmp_path / "phase2" / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (docs_dir / "wavelet_rf_vs_some_other_model.md").write_text("not this one\n")
+
+    result = walkthrough.phase1_comparison_doc("tiny_cnn")
     assert result["available"] is False
 
 

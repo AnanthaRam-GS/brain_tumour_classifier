@@ -575,33 +575,28 @@ if final_results["available"]:
         )
     )
 
-    # ---- 11. Baseline comparison ---------------------------------------------------------------
+    # ---- 11. Phase 1 comparison ---------------------------------------------------------------
     cells.append(
         _md(
-            """
-## 11. Comparison with the Phase 1 baseline (final mode only)
+            f"""
+## 11. Comparison with Phase 1
 
-Only meaningful once the real test split has been evaluated AND the
-cross-model comparison (`cli/compare.py --mode test`) has been run and
-committed -- this notebook only reads that comparison's output, it never
-recomputes it.
+Reads a hand-written Phase 1 vs Phase 2 comparison write-up from
+`phase2/docs/` (named `<phase1_model>_vs_{model}.md`) and displays it
+as-is -- this notebook never recomputes the comparison itself.
 """
         )
     )
     cells.append(
         _code(
             """
-if TEST_MODE == "final":
-    baseline = walkthrough.baseline_comparison(MODEL)
-    if not baseline["available"]:
-        print(baseline["note"])
-    else:
-        print("vs. Phase 1 GLCM v2 baseline:")
-        display(pd.DataFrame({"model": baseline["model"], "baseline": baseline["baseline"]}))
-        if baseline["paired_vs_baseline"] is not None:
-            display(pd.DataFrame(baseline["paired_vs_baseline"]).T)
+from IPython.display import Markdown
+
+comparison_doc = walkthrough.phase1_comparison_doc(MODEL)
+if not comparison_doc["available"]:
+    print(comparison_doc["note"])
 else:
-    print("skipped -- only runs when TEST_MODE == 'final'")
+    display(Markdown(comparison_doc["content"]))
 """
         )
     )

@@ -1,12 +1,11 @@
 """Synthetic end-to-end test of the walkthrough notebooks' gated demo
 path: btdl.walkthrough.run_official_final_test(), followed by the
 read-only reporting helpers that depend on real test-mode data
-(split_results("test"), baseline_comparison(), example_predictions(),
-test_access_status()) -- all against a fake repo, a registered model with
-3 frozen seeds, and synthetic Phase 1 baseline predictions aligned to the
-fake test split. The real repo's test_access_log.csv is never touched by
-this file (ABSOLUTE RULE: real final_test is never run on the real test
-split anywhere in this project's test suite)."""
+(split_results("test"), phase1_comparison_doc(), example_predictions(),
+test_access_status()) -- all against a fake repo and a registered model
+with 3 frozen seeds. The real repo's test_access_log.csv is never touched
+by this file (ABSOLUTE RULE: real final_test is never run on the real
+test split anywhere in this project's test suite)."""
 
 import json
 import subprocess
@@ -16,7 +15,6 @@ import pytest
 
 from btdl import config, walkthrough
 from btdl.cli.final_test import FinalTestError, check_final_test_readiness
-from btdl.contracts import CLASS_NAMES_BY_INDEX
 from btdl.training.device import select_device
 
 from tests.test_final_test_cli import _fully_ready_for_export
@@ -24,26 +22,17 @@ from tests.test_final_test_cli import _fully_ready_for_export
 DEVICE = select_device("cpu")
 
 
-def _write_baseline_predictions(tmp_path, test_sample_rows):
-    """test_sample_rows: list of (sample_id, patient_id, true_label) for
-    the fake repo's test split -- writes a baseline test_predictions.csv
-    at the location fake_repo's study.yaml["baseline_reference"] implies
-    (reports/experiments/fake_baseline/), with an EXACT sample_id match
-    and plausible (mostly-correct) class probabilities."""
+def _write_phase1_comparison_doc(tmp_path, model_name="tiny_cnn"):
+    """Writes a minimal hand-written-style Phase 1 vs Phase 2 comparison
+    doc under phase2/docs/, matching phase1_comparison_doc()'s naming
+    convention -- "<phase1_model>_vs_<model>.md"."""
 
-    baseline_dir = tmp_path / "reports" / "experiments" / "fake_baseline"
-    baseline_dir.mkdir(parents=True, exist_ok=True)
-
-    rows = []
-    for sample_id, patient_id, true_label in test_sample_rows:
-        probs = {name: 0.05 for name in CLASS_NAMES_BY_INDEX}
-        true_name = CLASS_NAMES_BY_INDEX[{1: 0, 2: 1, 3: 2}[true_label]]
-        probs[true_name] = 1.0 - 0.05 * (len(CLASS_NAMES_BY_INDEX) - 1)
-        row = {"sample_id": sample_id, "patient_id": patient_id, "true_label": true_label}
-        for name in CLASS_NAMES_BY_INDEX:
-            row[f"prob_{name}"] = probs[name]
-        rows.append(row)
-    pd.DataFrame(rows).to_csv(baseline_dir / "test_predictions.csv", index=False)
+    docs_dir = tmp_path / "phase2" / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (docs_dir / f"fake_baseline_vs_{model_name}.md").write_text(
+        f"# Fake baseline vs {model_name}\n\n| metric | fake baseline | {model_name} |\n"
+        f"|---|---|---|\n| macro_f1 | 0.50 | 0.95 |\n"
+    )
 
 
 @pytest.fixture
@@ -52,21 +41,15 @@ def registered_model_with_frozen_seeds(trained_run, monkeypatch):
     final_seeds (reusing test_final_test_cli.py's own
     _fully_ready_for_export fixture helper -- evaluate+freeze+efficiency+
     rehearsal, duplicated to every final_seed, registered, committed),
-    plus baseline predictions aligned to the fake test split's 2 samples
-    -- ready for run_official_final_test(confirm=True)."""
+    plus a Phase 1 comparison doc -- ready for
+    run_official_final_test(confirm=True)."""
 
     tmp_path, device, final_seeds, lr = _fully_ready_for_export(trained_run, monkeypatch)
 
-    split_index = __import__("btdl.data.split", fromlist=["load_split"]).load_split()
-    test_rows = [
-        (sample_id, row["patient_id"], row["label"])
-        for sample_id, row in split_index.items()
-        if row["split"] == "test"
-    ]
-    _write_baseline_predictions(tmp_path, test_rows)
+    _write_phase1_comparison_doc(tmp_path)
 
     subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "baseline predictions"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "phase 1 comparison doc"], cwd=tmp_path, check=True, capture_output=True)
 
     return tmp_path, device, sorted(final_seeds), lr
 
@@ -128,12 +111,9 @@ def test_reporting_helpers_work_after_official_final_test(registered_model_with_
     assert split_result["available"] is True
     assert set(split_result["per_seed"].keys()) == set(final_seeds)
 
-    baseline_result = walkthrough.baseline_comparison("tiny_cnn")
-    assert baseline_result["available"] is True
-    assert baseline_result["model"] == "tiny_cnn"
-    for name in walkthrough.BASELINE_COMPARISON_METRICS:
-        assert name in baseline_result["headline"]
-        assert name in baseline_result["paired_vs_baseline"]
+    comparison_doc = walkthrough.phase1_comparison_doc("tiny_cnn")
+    assert comparison_doc["available"] is True
+    assert "tiny_cnn" in comparison_doc["content"]
 
     examples = walkthrough.example_predictions("tiny_cnn", "test", n=2)
     assert examples["available"] is True
