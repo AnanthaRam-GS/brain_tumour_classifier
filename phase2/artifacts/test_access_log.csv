@@ -1,1 +1,4 @@
 run_dir,model_name,lr,seed,best_pt_sha256,git_commit,utc_timestamp,git_user_name
+phase2/runs/efficientnet_b0/lr3e-04_seed42,efficientnet_b0,0.0003,42,0b9b58e1c3695f032ea94b73f3f4ab5c04fea3b30fa70d596e2dbd4612c38aa4,fa031b35b3ed767ce0308de2d2ada20405463ed4,2026-10-12T19:25:08.296279+00:00,AnanthaRam-GS
+phase2/runs/efficientnet_b0/lr3e-04_seed43,efficientnet_b0,0.0003,43,2dc21c64061c32bf6d844ebeef3e23154430ebcc43e317642e90f71a8be44c61,71fba8de6185faecb198f43cf721cf742701081f,2026-10-12T19:25:16.135170+00:00,AnanthaRam-GS
+phase2/runs/efficientnet_b0/lr3e-04_seed44,efficientnet_b0,0.0003,44,33836226be9147012bda9e66e6370c60df55bf5c536b2522beadf9f167e39b53,71fba8de6185faecb198f43cf721cf742701081f,2026-10-12T19:25:24.006352+00:00,AnanthaRam-GS

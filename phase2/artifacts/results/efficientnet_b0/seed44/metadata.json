@@ -1,0 +1,95 @@
+{
+  "augmentation_yaml_sha256": "e8b2af13b5ec7119f0d084751bc14b984b81bb7c6c1d364549637ae5f1a5bb73",
+  "batch_size": 32,
+  "best_epoch": 5,
+  "best_val_loss": 0.2046271413564682,
+  "best_val_macro_f1": 0.9486781061704151,
+  "contract_conformant": true,
+  "contract_deviations": [],
+  "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+  "contract_version": "1.0.0",
+  "determinism": {
+    "cublas_workspace_config": null,
+    "cuda_available": false,
+    "cudnn_benchmark": false,
+    "cudnn_deterministic": true,
+    "deterministic_algorithms_warn_only": true,
+    "seed": 44,
+    "use_deterministic_algorithms": true
+  },
+  "device": {
+    "cuda_available": false,
+    "mps_available": true,
+    "name": "Apple MPS",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "torch_version": "2.14.1",
+    "type": "mps"
+  },
+  "effective_cfg": {
+    "batch_size": 32,
+    "contract_version": "1.0.0",
+    "early_stopping": {
+      "min_delta": 0.0,
+      "mode": "max",
+      "monitor": "val_macro_f1",
+      "patience": 8,
+      "tie_break": "lower_val_loss"
+    },
+    "eval_batch_size": 64,
+    "final_seeds": [
+      42,
+      43,
+      44
+    ],
+    "grid_seed": 42,
+    "loss": {
+      "class_weights": "train_inverse_frequency",
+      "name": "cross_entropy"
+    },
+    "lr_grid": [
+      0.0001,
+      0.0003,
+      0.001
+    ],
+    "max_epochs": 40,
+    "num_workers": 0,
+    "optimizer": {
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "name": "adamw",
+      "weight_decay": 0.0001
+    },
+    "precision": "fp32",
+    "scheduler": {
+      "eta_min": 0.0,
+      "name": "cosine",
+      "step": "per_epoch",
+      "t_max": "max_epochs"
+    },
+    "selection": "best_val_macro_f1"
+  },
+  "git_commit": "71fba8de6185faecb198f43cf721cf742701081f",
+  "git_dirty": false,
+  "git_dirty_paths": [],
+  "lr": 0.0003,
+  "manifest_sha256": "b511f8d325c845983dcceb4bbc4bb31edcdea9e84f2dee4c92c77f8f7ca91314",
+  "model_name": "efficientnet_b0",
+  "model_version": "unknown",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "pretrained_weights_loaded": true,
+  "python_version": "3.12.13",
+  "roi_cache_npy_sha256": "d9860739dc6fe5cec0c806d30e2630c4d3df24fe3f0d33c639ff4b3f88665735",
+  "roi_cache_path": "/Users/ananthugs/ananthu/Amrita/Sem 7/Computer_Vision/Project/phase2/cache/roi224_v1.npy",
+  "seed": 44,
+  "split_sha256": "ab45f42e99b4dc10c56b928a3a3ab17d753fb4251a970c51633c37c4a17fe9c1",
+  "torch_version": "2.14.1",
+  "torchvision_version": "0.29.1",
+  "total_parameters": 4011391,
+  "trainable_parameters": 4011391,
+  "training_yaml_sha256": "20a7ba7099019463e56c48c9ff870e64ca4e9365ca71f540c30b32623dedec55",
+  "weight_decay": 0.0001,
+  "weights_id": "EfficientNet_B0_Weights.IMAGENET1K_V1"
+}

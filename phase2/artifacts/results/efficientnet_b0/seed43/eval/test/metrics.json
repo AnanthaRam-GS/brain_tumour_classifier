@@ -1,0 +1,70 @@
+{
+  "accuracy": 0.9317269076305221,
+  "balanced_accuracy": 0.9199700426115521,
+  "confusion_matrix": [
+    [
+      103,
+      10,
+      4
+    ],
+    [
+      2,
+      219,
+      1
+    ],
+    [
+      4,
+      13,
+      142
+    ]
+  ],
+  "contract_conformant": true,
+  "log_loss": 0.22518253134320748,
+  "macro_f1": 0.9278581723945131,
+  "macro_precision": 0.9386330668947135,
+  "macro_recall": 0.9199700426115521,
+  "n": 498,
+  "per_class": {
+    "glioma": {
+      "f1": 0.9439655172413793,
+      "precision": 0.9049586776859504,
+      "recall": 0.9864864864864865,
+      "support": 222
+    },
+    "meningioma": {
+      "f1": 0.911504424778761,
+      "precision": 0.944954128440367,
+      "recall": 0.8803418803418803,
+      "support": 117
+    },
+    "pituitary": {
+      "f1": 0.9281045751633987,
+      "precision": 0.9659863945578231,
+      "recall": 0.8930817610062893,
+      "support": 159
+    }
+  },
+  "results_schema_version": "1.0.0",
+  "roc_auc": {
+    "macro_ovr": 0.9852257693290434,
+    "per_class": {
+      "glioma": 0.9877105366235801,
+      "meningioma": 0.9877066648720192,
+      "pituitary": 0.9802601064915307
+    },
+    "weighted_ovr": 0.9853308752060531
+  },
+  "run": {
+    "best_epoch": 2,
+    "contract_dir_sha256": "311a58cdb40226a3f8744679098686e0497c271b9ff32203f15c1ca7c6d646c6",
+    "git_commit": "71fba8de6185faecb198f43cf721cf742701081f",
+    "lr": 0.0003,
+    "model_name": "efficientnet_b0",
+    "model_version": "unknown",
+    "seed": 43
+  },
+  "split": "test",
+  "weighted_f1": 0.9312750802764691,
+  "weighted_precision": 0.9338399522258993,
+  "weighted_recall": 0.9317269076305221
+}

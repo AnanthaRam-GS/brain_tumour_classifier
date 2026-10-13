@@ -1,0 +1,51 @@
+{
+  "class_tertile_counts": {
+    "glioma": {
+      "large": 130,
+      "medium": 71,
+      "small": 21
+    },
+    "meningioma": {
+      "large": 26,
+      "medium": 53,
+      "small": 38
+    },
+    "pituitary": {
+      "large": 3,
+      "medium": 41,
+      "small": 115
+    }
+  },
+  "tertiles": {
+    "large": {
+      "accuracy": 0.9748427672955975,
+      "macro_f1": 0.9078746650175221,
+      "n": 159,
+      "per_class_recall": {
+        "glioma": 1.0,
+        "meningioma": 0.8846153846153846,
+        "pituitary": 0.6666666666666666
+      }
+    },
+    "medium": {
+      "accuracy": 0.9454545454545454,
+      "macro_f1": 0.9407874260815436,
+      "n": 165,
+      "per_class_recall": {
+        "glioma": 0.9859154929577465,
+        "meningioma": 0.8867924528301887,
+        "pituitary": 0.9512195121951219
+      }
+    },
+    "small": {
+      "accuracy": 0.8793103448275862,
+      "macro_f1": 0.835283768617102,
+      "n": 174,
+      "per_class_recall": {
+        "glioma": 0.9523809523809523,
+        "meningioma": 0.8157894736842105,
+        "pituitary": 0.8869565217391304
+      }
+    }
+  }
+}
