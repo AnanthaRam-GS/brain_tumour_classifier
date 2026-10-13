@@ -229,7 +229,10 @@ A short `--smoke` run at the study's selected learning rate, seed 42 (a
 quick training run at a reduced epoch count, so a real final run still
 trains for up to `training.yaml`'s `max_epochs`, with early stopping).
 Any previous smoke run for this model is moved aside first (never
-deleted), under the gitignored `phase2/runs/_smoke/_previous/` tree.
+deleted), under the gitignored `phase2/runs/_smoke/_previous/` tree. Runs
+with `allow_dirty=True`: this run is illustrative only and is never
+frozen/registered/tested, so a clean working tree isn't required for it
+(unlike every gated step from section 9 onward).
 """
         )
     )
@@ -260,7 +263,7 @@ if smoke_dir.exists():
 
 device = select_device("auto")
 print(f"running a {SMOKE_MAX_EPOCHS}-epoch training run at lr={selected_lr}, seed=42")
-result = run_train(MODEL, selected_lr, 42, smoke=True, device=device)
+result = run_train(MODEL, selected_lr, 42, smoke=True, device=device, allow_dirty=True)
 print(f"ran {result.epochs_run} epoch(s), stop reason: {result.stop_reason!r}")
 
 import pandas as pd
